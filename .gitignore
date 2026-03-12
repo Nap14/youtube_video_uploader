@@ -1,0 +1,22 @@
+# Secrets
+client_secret.json
+token.json
+schedule.json
+
+# Virtual Environment
+venv/
+.env
+
+# Python caching
+__pycache__/
+*.pyc
+
+# Local Data and Logs
+thumbnails/
+*.txt
+!requirements.txt
+*.log
+
+# IDE files
+.vscode/
+.idea/
