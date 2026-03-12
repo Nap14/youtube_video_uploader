@@ -256,6 +256,9 @@ def process_zoom_folders():
              # Новий формат, коли значення - це словник (dict)
              course_name = course_data.get("name", f"Невідомий курс ({date_str})")
              thumbnail_path = course_data.get("thumbnail")
+             if thumbnail_path and not os.path.isabs(thumbnail_path):
+                 # Якщо вказано лише ім'я файлу (або відносний шлях), шукаємо у папці thumbnails
+                 thumbnail_path = os.path.join(BASE_DIR, "thumbnails", thumbnail_path)
          
          # Формуємо заголовок відео для YouTube
          video_title = f"{course_name} - Запис заняття від {folder_date.strftime('%d.%m.%Y')}"
