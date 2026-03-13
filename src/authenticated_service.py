@@ -12,14 +12,14 @@ class Oauth2Service:
 
 
     def autorize(self, secrets_file: str):
-        self.logging.info("Просимо користувача авторизуватись через браузер...")
+        self.logging.info("Asking user to authorize via browser...")
         flow = InstalledAppFlow.from_client_secrets_file(
             secrets_file, self.SCOPES)
     
         return flow.run_local_server(port=0)
 
     def get_youtube_service(self, token_file: str, secrets_file: str):
-        """Авторизація в YouTube API."""
+        """Authorize in YouTube API."""
         credentials = None
         
         if os.path.exists(token_file):
@@ -27,7 +27,7 @@ class Oauth2Service:
         
         if not credentials or not credentials.valid:
             if credentials and credentials.expired and credentials.refresh_token:
-                self.logging.info("Оновлюємо токен доступу...")
+                self.logging.info("Refreshing access token...")
                 credentials.refresh(Request())
             else:
                 credentials = self.autorize(secrets_file)

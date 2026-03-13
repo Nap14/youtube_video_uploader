@@ -21,18 +21,17 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 def process_zoom_folders():
     """
-    Основний цикл для пошуку та завантаження відео з Zoom.
+    Main loop to search and upload Zoom videos.
     """
     if not os.path.exists(CLIENT_SECRETS_FILE):
-        logging.error(f"Файл {CLIENT_SECRETS_FILE} не знайдено. Ви не налаштували API.")
+        logging.error(f"File {CLIENT_SECRETS_FILE} not found. API is not configured.")
         return
 
-    # Ініціалізація конфігурації
     config = Config(CONFIG_FILE, logging)
     zoom_dir = config.get_zoom_dir()
 
     if not zoom_dir or not os.path.exists(zoom_dir):
-        logging.error(f"Папка зуму {zoom_dir} не знайдена.")
+        logging.error(f"Zoom folder {zoom_dir} not found.")
         return
 
     schedule = load_schedule(SCHEDULE_FILE, logging)
@@ -44,7 +43,6 @@ def process_zoom_folders():
 
     report_lines = []
 
-    # Читаємо папки в ZOOM_DIR
     folders = [f for f in os.listdir(zoom_dir) if os.path.isdir(os.path.join(zoom_dir, f))]
     
     for folder in folders:
@@ -52,38 +50,38 @@ def process_zoom_folders():
          
          mp4_files = find_video(folder_path)
          if not mp4_files:
-             logging.info(f"В папці '{folder}' не знайдено .mp4 файлів. Пропускаємо.")
+             logging.info(f"No .mp4 files found in folder '{folder}'. Skipping.")
              continue
          
          video_file = os.path.join(folder_path, mp4_files[0])
          
          folder_date = get_date_from_file_name(folder)
          if not folder_date:
-            logging.warning(f"Не вдалося розпізнати дату з назви папки: '{folder}'")
+            logging.warning(f"Could not recognize date from folder name: '{folder}'")
             continue
 
          course_data = get_course_name_by_date(folder_date, schedule)
          if not course_data:
-             logging.warning(f"Курс не знайдено у розкладі для папки '{folder}'. Пропускаємо відео.")
+             logging.warning(f"Course not found in schedule for folder '{folder}'. Skipping video.")
              continue
          elif isinstance(course_data, str):
              course_name = course_data
              thumbnail_path = None
          else:
-             course_name = course_data.get("name", f"Невідомий курс")
+             course_name = course_data.get("name", f"Unknown Course")
              thumbnail_path = course_data.get("thumbnail")
              if thumbnail_path and not os.path.isabs(thumbnail_path):
                  thumbnail_path = os.path.join(BASE_DIR, "thumbnails", thumbnail_path)
          
-         video_title = f"{course_name} - Запис заняття від {folder_date.strftime('%d.%m.%Y')}"
-         video_description = f"Автоматичне завантаження запису заняття: {course_name}"
+         video_title = f"{course_name}/{folder_date.strftime('%d.%m.%Y')}"
+         video_description = f"Automatic upload of lesson recording: {course_name}"
          
          uploaded_marker = os.path.join(folder_path, ".uploaded_to_youtube")
          if os.path.exists(uploaded_marker):
-              logging.info(f"Відео в '{folder}' вже було завантажено раніше. Пропускаємо.")
+              logging.info(f"Video in '{folder}' was already uploaded. Skipping.")
               continue
 
-         logging.info(f"Починаємо завантаження відео для: {course_name}")
+         logging.info(f"Starting video upload for: {course_name}")
          try:
              video_service = VideoService(youtube, logging)
              video_id, video_url = video_service.upload_video(video_file, video_title, video_description)
@@ -94,24 +92,24 @@ def process_zoom_folders():
              playlist_service = PlaylistController(youtube, logging)
              playlist_service.add_video_to_playlist(video_id, course_name)
              
-             report_lines.append(f"{folder_date.strftime('%H:%M')} | {course_name} | Посилання: {video_url}")
+             report_lines.append(f"{folder_date.strftime('%H:%M')} | {course_name} | Link: {video_url}")
              
-             logging.info(f"Відео завантажено успішно. Переміщуємо папку '{folder}' у Кошик...")
+             logging.info(f"Video uploaded successfully. Moving folder '{folder}' to Trash...")
              try:
                  send2trash(folder_path)
-                 logging.info(f"Папка {folder} відправлена у Кошик.")
+                 logging.info(f"Folder {folder} sent to Trash.")
              except Exception as trash_e:
-                 logging.warning(f"Не вдалося відправити у Кошик: {trash_e}. Залишаємо папку.")
+                 logging.warning(f"Failed to send to Trash: {trash_e}. Keeping folder.")
                  
          except Exception as e:
-             logging.error(f"Помилка завантаження відео з '{folder}': {e}")
-             report_lines.append(f"ПОМИЛКА | {course_name}: {e}")
+             logging.error(f"Error uploading video from '{folder}': {e}")
+             report_lines.append(f"ERROR | {course_name}: {e}")
 
     if report_lines:
         report_path = create_report(BASE_DIR, report_lines)
-        logging.info(f"Готово! Звіт збережено у файл: {report_path}")
+        logging.info(f"Done! Report saved to: {report_path}")
     else:
-        logging.info("Нових відео для завантаження не знайдено.")
+        logging.info("No new videos found for upload.")
 
 if __name__ == '__main__':
     process_zoom_folders()

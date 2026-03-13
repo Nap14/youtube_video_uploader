@@ -10,10 +10,10 @@ class VideoService:
 
   def upload_video(self, file_path, title, description, category_id="27"):
       """
-      Завантажує відео на YouTube.
-      Значення category_id="27" відповідає Education.
+      Uploads a video to YouTube.
+      category_id="27" corresponds to Education.
       """
-      self.logging.info(f"Спроба завантаження: {title}")
+      self.logging.info(f"Attempting upload: {title}")
       
       body = {
           'snippet': {
@@ -39,27 +39,27 @@ class VideoService:
       while response is None:
           status, response = request.next_chunk()
           if status:
-              self.logging.info(f"Завантажено: {int(status.progress() * 100)}%")
+              self.logging.info(f"Uploaded: {int(status.progress() * 100)}%")
 
-      self.logging.info("Завантаження завершено!")
+      self.logging.info("Upload complete!")
       video_id = response.get('id')
       return video_id, f"https://youtu.be/{video_id}"
   
   def set_video_thumbnail(self, video_id, thumbnail_path):
       """
-      Встановлює кастомну обкладику для відео.
+      Sets a custom thumbnail for the video.
       """
       if not thumbnail_path or not os.path.exists(thumbnail_path):
-          self.logging.warning(f"Обкладинку не знайдено за шляхом: {thumbnail_path}. Залишаємо стандартну.")
+          self.logging.warning(f"Thumbnail not found at: {thumbnail_path}. Keeping default.")
           return
           
-      self.logging.info(f"Встановлюємо обкладинку: {thumbnail_path}")
+      self.logging.info(f"Setting thumbnail: {thumbnail_path}")
       try:
           request = self.youtube.thumbnails().set(
               videoId=video_id,
               media_body=MediaFileUpload(thumbnail_path)
           )
           request.execute()
-          self.logging.info("Обкладинку успішно встановлено!")
+          self.logging.info("Thumbnail successfully set!")
       except Exception as e:
           self.logging.error(f"Помилка встановлення обкладинки: {e}")
