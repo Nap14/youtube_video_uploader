@@ -7,8 +7,14 @@ import datetime
 def load_schedule(file: str, logging):
     """Завантажує розклад з файлу JSON."""
     if not os.path.exists(file):
-         logging.error(f"Файл розкладу {file} не знайдено.")
-         return None
+         print("\n" + "!"*50)
+         print(f"ПОМИЛКА: Файл розкладу '{file}' не знайдено!")
+         print("Будь ласка, створіть цей файл у форматі JSON.")
+         print("Приклад структури можна знайти в README.md.")
+         print("!"*50 + "\n")
+         logging.error(f"Файл розкладу {file} не знайдено. Перезапустіть програму після створення файлу.")
+         input("Натисніть Enter, щоб вийти...")
+         exit(1)
     with open(file, 'r', encoding='utf-8') as f:
          return json.load(f)
     
