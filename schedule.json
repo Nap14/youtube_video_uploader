@@ -1,0 +1,33 @@
+{
+  "Monday": {
+    "15:00": {
+      "name": "Python Group 1",
+      "thumbnail": "D:\\Andrey\\videoITK\\zoom_uploader\\thumbnails\\python.jpg"
+    },
+    "16:30": "Unity Group 2",
+    "20:00": "Unity Пн+Ср 20.00 Николенко тест"
+  },
+  "Tuesday": {
+    "15:00": "Blender Group 1"
+  },
+  "Wednesday": {
+    "17:00": "Python Group 2",
+    "20:00": "Unity Пн+Ср 20.00 Николенко тест"
+  },
+  "Thursday": {
+    "18:00": {
+      "name": "Луговик/Blender/Николенко",
+      "thumbnail": "blender.jpg"
+    },
+    "19:00": {
+      "name": "Blender 1.0/Вт.-Чт.19:00/Николенко",
+      "thumbnail": "blender.jpg"
+    }
+  },
+  "Friday": {},
+  "Saturday": {
+    "10:00": "Scratch Group 1",
+    "11:30": "Roblox Group 1"
+  },
+  "Sunday": {}
+}
