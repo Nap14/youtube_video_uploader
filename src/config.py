@@ -1,5 +1,7 @@
 import json
 import os
+import tkinter as tk
+from tkinter import filedialog
 
 class Config:
     def __init__(self, config_file, logging):
@@ -27,17 +29,25 @@ class Config:
     def get_zoom_dir(self):
         zoom_dir = self.data.get("ZOOM_DIR")
         if not zoom_dir:
-            print("\n" + "="*50)
-            print("FIRST RUN - SETUP")
-            print("="*50)
-            zoom_dir = input("Enter the full path to the Zoom recordings folder (e.g., D:\\zoom): ").strip().strip('"')
             
-            while not zoom_dir or not os.path.exists(zoom_dir):
-                print(f"Error: Path '{zoom_dir}' does not exist or is empty.")
-                zoom_dir = input("Please enter a valid path: ").strip().strip('"')
+            self.logging.info("First run: Opening folder selection dialog...")
             
+            root = tk.Tk()
+            root.withdraw() 
+            root.attributes('-topmost', True)
+            
+            zoom_dir = filedialog.askdirectory(title="Select folder with Zoom recordings")
+            root.destroy()
+
+            if not zoom_dir:
+                self.logging.error("No folder selected. Portability setup aborted.")
+                return None
+            
+            if not os.path.exists(zoom_dir):
+                self.logging.error(f"Selected path '{zoom_dir}' does not exist.")
+                return None
+
             self.data["ZOOM_DIR"] = zoom_dir
             self.save()
-            print("="*50 + "\n")
             
         return zoom_dir

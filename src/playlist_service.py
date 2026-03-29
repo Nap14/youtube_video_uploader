@@ -62,4 +62,4 @@ class PlaylistController:
             part="snippet",
             body=body
         ).execute()
-        self.logging.info("Відео успішно додано у плейлист.")
+        self.logging.info("Video successfully added to the playlist.")

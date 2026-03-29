@@ -89,6 +89,9 @@ def process_zoom_folders():
              if thumbnail_path:
                  video_service.set_video_thumbnail(video_id, thumbnail_path)
              
+             with open(uploaded_marker, 'w') as f:
+                 f.write(video_id)
+                 
              playlist_service = PlaylistController(youtube, logging)
              playlist_service.add_video_to_playlist(video_id, course_name)
              
@@ -96,7 +99,8 @@ def process_zoom_folders():
              
              logging.info(f"Video uploaded successfully. Moving folder '{folder}' to Trash...")
              try:
-                 send2trash(folder_path)
+                 trash_path = os.path.normpath(folder_path)
+                 send2trash(trash_path)
                  logging.info(f"Folder {folder} sent to Trash.")
              except Exception as trash_e:
                  logging.warning(f"Failed to send to Trash: {trash_e}. Keeping folder.")
