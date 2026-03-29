@@ -3,13 +3,13 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from google.auth.exceptions import RefreshError
 
 class Oauth2Service:
     SCOPES = ['https://www.googleapis.com/auth/youtube']
 
     def __init__(self, logging):
         self.logging = logging
-
 
     def autorize(self, secrets_file: str):
         self.logging.info("Asking user to authorize via browser...")
@@ -23,12 +23,22 @@ class Oauth2Service:
         credentials = None
         
         if os.path.exists(token_file):
-            credentials = Credentials.from_authorized_user_file(token_file, self.SCOPES)
+            try:
+                credentials = Credentials.from_authorized_user_file(token_file, self.SCOPES)
+            except Exception as e:
+                self.logging.warning(f"Failed to load token file: {e}. Re-authorizing...")
         
         if not credentials or not credentials.valid:
             if credentials and credentials.expired and credentials.refresh_token:
-                self.logging.info("Refreshing access token...")
-                credentials.refresh(Request())
+                try:
+                    self.logging.info("Refreshing access token...")
+                    credentials.refresh(Request())
+                except RefreshError as e:
+                    self.logging.warning(f"Refresh token expired or invalid: {e}. Re-authorizing...")
+                    credentials = self.autorize(secrets_file)
+                except Exception as e:
+                    self.logging.error(f"Unexpected error during token refresh: {e}. Re-authorizing...")
+                    credentials = self.autorize(secrets_file)
             else:
                 credentials = self.autorize(secrets_file)
             
