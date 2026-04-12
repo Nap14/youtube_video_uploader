@@ -85,7 +85,7 @@ class LessonEditModal(ctk.CTkToplevel):
     def pick_color(self):
         from tkinter import colorchooser
         _, hex_c = colorchooser.askcolor(initialcolor=self.chosen_color or "#3b8ed0")
-        if hex_c:
+        if hex_c and self.winfo_exists():
             self.chosen_color = hex_c
             self.color_preview.configure(fg_color=hex_c)
 

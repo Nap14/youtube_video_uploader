@@ -27,7 +27,7 @@ class Config:
 
     def get_zoom_dir(self): return self.data.get("ZOOM_DIR")
     def get_lms_token(self): return self.data.get("LMS_TOKEN")
-    def get_school_id(self): return self.data.get("SCHOOL_ID", "18828")
+    def get_school_id(self): return self.data.get("SCHOOL_ID", "")
     def get_reports_dir(self):
         d = self.data.get("REPORTS_DIR", "reports")
         if not os.path.exists(d): os.makedirs(d, exist_ok=True)

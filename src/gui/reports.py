@@ -8,11 +8,11 @@ class ReportsFrame(ctk.CTkFrame):
         super().__init__(master, **kwargs)
         self.config = config
         self.grid_columnconfigure((0, 1), weight=1)
-        self.grid_rowconfigure(2, weight=1)
+        self.grid_rowconfigure(3, weight=1)
         self.create_widgets()
 
     def create_widgets(self):
-        ctk.CTkLabel(self, text="Reports Management", font=ctk.CTkFont(size=24, weight="bold")).grid(row=0, column=0, columnspan=2, padx=30, pady=(30, 10), sticky="w")
+        ctk.CTkLabel(self, text="Reports Management", font=ctk.CTkFont(size=24, weight="bold")).grid(row=0, column=0, columnspan=2, padx=30, pady=(20, 5), sticky="w")
         
         btn_f = ctk.CTkFrame(self, fg_color="transparent")
         btn_f.grid(row=1, column=0, columnspan=2, padx=30, pady=10, sticky="w")

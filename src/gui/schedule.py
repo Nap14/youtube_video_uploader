@@ -46,7 +46,13 @@ class ScheduleCalendarFrame(ctk.CTkScrollableFrame):
                     manual_c = None if isinstance(data, str) else data.get("color")
                     row_span, (cl, cd) = max(1, duration // 60), (manual_c, manual_c) if manual_c else self.get_course_color(name)
                     
-                    wrapped = "\n".join([name[i:i+12] for i in range(0, len(name), 12)]) if len(name) > 12 else name
+                    wrapped = ""
+                    if "/" in name:
+                        parts = name.split('/')
+                        wrapped = "\n".join(parts[:2])
+                    else:
+                        wrapped = "\n".join([name[i:i+12] for i in range(0, len(name), 12)]) if len(name) > 12 else name
+
                     btn = ctk.CTkButton(self, text=wrapped, fg_color=(cl, cd), text_color=("black", "white"), 
                                         font=ctk.CTkFont(size=10, weight="bold"), height=48 * row_span,
                                         command=lambda d=day_name, t=time_str, v=data: self.edit_cmd(d, t, v))

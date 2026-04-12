@@ -33,6 +33,14 @@ def main():
     parser.add_argument("--cli", action="store_true", help="Run in CLI mode")
     args = parser.parse_args()
 
+    # Pre-boot check for client_secret.json
+    if not os.path.exists(PATHS['SECRETS_FILE']):
+        import tkinter as tk
+        from tkinter import messagebox
+        root = tk.Tk(); root.withdraw()
+        messagebox.showerror("Critical Error", "Файл 'client_secret.json' не знайдено у папці configs!\nБудь ласка, зверніться до адміністратора додатку.")
+        return
+
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     config = Config(PATHS['CONFIG_FILE'], logging)
     schedule = load_schedule(PATHS['SCHEDULE_FILE'])

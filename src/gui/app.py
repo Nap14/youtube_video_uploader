@@ -33,7 +33,12 @@ class GuiApp(ctk.CTk):
             "schedule": ScheduleCalendarFrame(self, self.schedule, self.open_edit, fg_color="transparent"),
             "reports": ReportsFrame(self, self.config, fg_color="transparent")
         }
-        self.select_frame("dashboard")
+        
+        # Check first launch
+        if not self.config.get_zoom_dir():
+            self.select_frame("settings")
+        else:
+            self.select_frame("dashboard")
 
     def select_frame(self, name):
         for f in self.frames.values(): f.grid_forget()
@@ -76,6 +81,13 @@ class GuiApp(ctk.CTk):
 
         def run():
             logger = GuiLogger(self.frames["dashboard"].log_text)
+            zoom_dir = self.config.get_zoom_dir()
+            
+            if not zoom_dir:
+                logger.error("Configuration Error: Zoom Directory is not set!")
+                logger.info("Please go to Settings and select your Zoom recordings folder.")
+                return
+
             mode = self.frames["dashboard"].mode_var.get()
             self.frames["dashboard"].start_btn.configure(state="disabled")
             
