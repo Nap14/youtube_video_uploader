@@ -16,7 +16,6 @@ class LessonEditModal(ctk.CTkToplevel):
         self.create_widgets()
 
     def create_widgets(self):
-        # Day & Time
         ctk.CTkLabel(self, text="Day *").grid(row=0, column=0, padx=20, pady=(20,0), sticky="w")
         self.day_cb = ctk.CTkComboBox(self, values=["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], width=250)
         self.day_cb.grid(row=1, column=0, padx=20, pady=5, sticky="w")
@@ -34,7 +33,6 @@ class LessonEditModal(ctk.CTkToplevel):
             h, m = self.old_time.split(':')
             self.hour_cb.set(h); self.min_cb.set(m if m in ["00", "15", "30", "45"] else "00")
 
-        # Course & LMS
         ctk.CTkLabel(self, text="Course Name *").grid(row=2, column=0, padx=20, pady=(10,0), sticky="w")
         self.name_entry = ctk.CTkEntry(self, width=300)
         self.name_entry.grid(row=3, column=0, padx=20, pady=5, sticky="w")
@@ -45,7 +43,6 @@ class LessonEditModal(ctk.CTkToplevel):
         self.lms_id_entry.grid(row=3, column=1, padx=20, pady=5, sticky="w")
         if self.value and isinstance(self.value, dict): self.lms_id_entry.insert(0, self.value.get("lms_course_id", ""))
 
-        # Image & Duration & Color
         self.create_extended_widgets()
 
     def create_extended_widgets(self):
@@ -57,7 +54,6 @@ class LessonEditModal(ctk.CTkToplevel):
         if self.value and isinstance(self.value, dict): self.img_entry.insert(0, self.value.get("thumbnail") or self.value.get("image", ""))
         ctk.CTkButton(img_f, text="Browse", width=80, command=self.browse_img).pack(side="left", padx=(10, 0))
 
-        # Color & Duration Row
         f_cd = ctk.CTkFrame(self, fg_color="transparent")
         f_cd.grid(row=6, column=0, columnspan=2, padx=20, pady=(10,0), sticky="w")
         

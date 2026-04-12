@@ -15,7 +15,6 @@ class GuiApp(ctk.CTk):
         self.geometry("1100x600")
         self.minsize(900, 500)
         
-        # Theme setup
         self.theme = self.config.get_data().get("THEME", "Dark")
         ctk.set_appearance_mode(self.theme)
         
@@ -34,7 +33,6 @@ class GuiApp(ctk.CTk):
             "reports": ReportsFrame(self, self.config, fg_color="transparent")
         }
         
-        # Check first launch
         if not self.config.get_zoom_dir():
             self.select_frame("settings")
         else:

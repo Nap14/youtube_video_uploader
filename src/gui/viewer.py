@@ -43,7 +43,7 @@ class ReportTableModal(ctk.CTkToplevel):
                                        padx=10, pady=5, anchor="w")
                     lbl.grid(row=r, column=c, sticky="nsew", padx=1, pady=1)
                 
-                if r > 0: # Add delete button for rows, skip header
+                if r > 0:
                     btn = ctk.CTkButton(self.container, text="X", width=30, height=22, fg_color="#e74c3c", 
                                         command=lambda idx=r: self.delete_row(idx))
                     btn.grid(row=r, column=cols, padx=5)

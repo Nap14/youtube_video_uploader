@@ -1,5 +1,3 @@
-# UI Constants and Colors
-
 COURSE_COLORS = [
     ("#FF7675", "#D63031"), # Red
     ("#74B9FF", "#0984E3"), # Blue

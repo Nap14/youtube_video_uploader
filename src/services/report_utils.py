@@ -14,7 +14,6 @@ def create_report(report_rows, reports_dir, prefix="report"):
         writer.writerow(["Date", "Course", "URL", "Status", "Details"])
         writer.writerows(report_rows)
     
-    # Also create a .txt summary
     txt_path = os.path.join(reports_dir, f"{prefix}_{ts}.txt")
     with open(txt_path, 'w', encoding='utf-8') as f:
         f.write(f"=== {prefix.upper()} REPORT - {ts} ===\n\n")

@@ -20,7 +20,6 @@ class ScheduleCalendarFrame(ctk.CTkScrollableFrame):
         for i, name in enumerate(DAYS_UA):
             ctk.CTkLabel(self, text=name, font=ctk.CTkFont(weight="bold")).grid(row=0, column=i+1, pady=10, sticky="ew")
 
-        # Hourly Grid
         for row in range(1, 16):
             hour = 7 + row
             ctk.CTkLabel(self, text=f"{hour}:00", font=ctk.CTkFont(size=10), text_color="gray60").grid(row=row, column=0, padx=(0, 10), sticky="ne")
@@ -42,7 +41,6 @@ class ScheduleCalendarFrame(ctk.CTkScrollableFrame):
                     name = data if isinstance(data, str) else data.get("name", "Unnamed")
                     duration = 60 if isinstance(data, str) else int(data.get("duration", 60))
                     
-                    # Color logic: manual or hashed
                     manual_c = None if isinstance(data, str) else data.get("color")
                     row_span, (cl, cd) = max(1, duration // 60), (manual_c, manual_c) if manual_c else self.get_course_color(name)
                     

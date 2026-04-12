@@ -14,7 +14,6 @@ class SettingsFrame(ctk.CTkFrame):
         ctk.CTkLabel(self, text="General Settings", font=ctk.CTkFont(size=24, weight="bold")).grid(row=0, column=0, padx=30, pady=(30, 20), sticky="w")
         
         ENTRY_WIDTH = 550
-        # Zoom Dir
         self._add_label_with_help("Zoom Recordings Directory:", "The local folder where Zoom saves your recordings. Usually: Documents/Zoom")
         f1 = ctk.CTkFrame(self, fg_color="transparent")
         f1.grid(row=2, column=0, padx=30, pady=(0, 10), sticky="w")
@@ -23,7 +22,6 @@ class SettingsFrame(ctk.CTkFrame):
         self.zoom_dir_entry.insert(0, self.config.get_zoom_dir() or "")
         ctk.CTkButton(f1, text="Browse", width=80, command=self.browse_cmd).pack(side="left", padx=(10, 0))
         
-        # LMS Token
         self._add_label_with_help("LMS Bearer Token:", "Bearer token from SendPulse Settings -> API -> Educate, OR from browser Network tab while editing a lesson.")
         f2 = ctk.CTkFrame(self, fg_color="transparent")
         f2.grid(row=4, column=0, padx=30, pady=(0, 10), sticky="w")
@@ -34,7 +32,6 @@ class SettingsFrame(ctk.CTkFrame):
         self.show_token_var = ctk.BooleanVar(value=False)
         ctk.CTkCheckBox(f2, text="Show", variable=self.show_token_var, command=self.toggle_token, width=60).pack(side="left", padx=(10, 0))
 
-        # ID & Save
         self._add_label_with_help("School ID:", "Your SendPulse School Identification Number.")
         self.school_id_entry = ctk.CTkEntry(self, width=200)
         self.school_id_entry.grid(row=6, column=0, padx=30, pady=(0, 20), sticky="w")

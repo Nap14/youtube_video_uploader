@@ -18,7 +18,6 @@ def get_course_name_by_date(date, schedule):
     day = date.strftime('%A')
     day_lessons = schedule.get(day, {})
     
-    # Matching simple HH:MM
     time_key = date.strftime('%H:00')
     if time_key in day_lessons: return day_lessons[time_key]
     

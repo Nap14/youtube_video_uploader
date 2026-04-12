@@ -19,12 +19,10 @@ class ReportsFrame(ctk.CTkFrame):
         ctk.CTkButton(btn_f, text="Refresh All", command=self.refresh_reports, width=120).pack(side="left")
         ctk.CTkButton(btn_f, text="Clear All History", fg_color="#e74c3c", command=self.clear_all, width=150).pack(side="left", padx=10)
         
-        # Youtube Column
         ctk.CTkLabel(self, text="YouTube Reports", font=ctk.CTkFont(weight="bold")).grid(row=2, column=0, padx=30, pady=(10,0), sticky="w")
         self.yt_list = ctk.CTkScrollableFrame(self)
         self.yt_list.grid(row=3, column=0, padx=(30, 10), pady=10, sticky="nsew")
         
-        # LMS Column
         ctk.CTkLabel(self, text="LMS Reports", font=ctk.CTkFont(weight="bold")).grid(row=2, column=1, padx=30, pady=(10,0), sticky="w")
         self.lms_list = ctk.CTkScrollableFrame(self)
         self.lms_list.grid(row=3, column=1, padx=(10, 30), pady=10, sticky="nsew")
