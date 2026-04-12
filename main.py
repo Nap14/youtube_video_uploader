@@ -138,18 +138,18 @@ def sync_to_lms(report_rows, config, schedule):
 
     return lms_report
 
-def main():
-    print("\n--- Zoom Video Automation (YT + LMS) ---")
+import sys
+from src.gui_app import ZoomUploaderGUI
+from src.automation import process_youtube_uploads, sync_to_lms
+
+def run_cli(config, schedule, reports_dir):
+    print("\n--- Zoom Video Automation (CLI Mode) ---")
     print("1. Full Cycle (YouTube Upload + LMS Sync)")
     print("2. YouTube Only")
     print("3. LMS Sync Only (from existing YT report CSV)")
     
     choice = input("\nSelect mode (1-3): ").strip()
     
-    config = Config(CONFIG_FILE, logging)
-    schedule = load_schedule(SCHEDULE_FILE, logging)
-    reports_dir = config.get_reports_dir()
-
     if choice == '1' or choice == '2':
         if not os.path.exists(CLIENT_SECRETS_FILE):
             logging.error(f"YouTube secrets missing: {CLIENT_SECRETS_FILE}")
@@ -158,7 +158,7 @@ def main():
         oauth2 = Oauth2Service(logging)
         youtube = oauth2.get_youtube_service(TOKEN_FILE, CLIENT_SECRETS_FILE)
         
-        yt_report_rows = process_youtube_uploads(config, schedule, youtube, reports_dir)
+        yt_report_rows = process_youtube_uploads(config, schedule, youtube)
         
         if yt_report_rows:
             report_path = create_report(reports_dir, yt_report_rows, "youtube")
@@ -192,10 +192,6 @@ def main():
             logging.info("Selection cancelled.")
             return
         
-        if not os.path.exists(report_file):
-            logging.error(f"File not found: {report_file}")
-            return
-        
         rows = []
         with open(report_file, 'r', encoding='utf-8') as f:
             reader = csv.reader(f)
@@ -209,10 +205,31 @@ def main():
     else:
         print("Invalid choice.")
 
+def main():
+    config = Config(CONFIG_FILE, logging)
+    schedule = load_schedule(SCHEDULE_FILE, logging)
+    reports_dir = config.get_reports_dir()
+    
+    # Check for CLI flag
+    if "--cli" in sys.argv:
+        run_cli(config, schedule, reports_dir)
+    else:
+        # Launch GUI
+        paths = {
+            'CONFIG_FILE': CONFIG_FILE,
+            'CLIENT_SECRETS_FILE': CLIENT_SECRETS_FILE,
+            'TOKEN_FILE': TOKEN_FILE,
+            'SCHEDULE_FILE': SCHEDULE_FILE
+        }
+        app = ZoomUploaderGUI(config, schedule, paths)
+        app.mainloop()
+
 if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:
         print("\nAborted by user.")
     except Exception as e:
-        logging.critical(f"Fatal error: {e}", exc_info=True)
+        # Don't show critical log if it's just a GUI close
+        if "main thread is not in main loop" not in str(e):
+            logging.critical(f"Fatal error: {e}", exc_info=True)
