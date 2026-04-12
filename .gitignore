@@ -24,3 +24,9 @@ reports/
 .vscode/
 .idea/
 
+
+# Build artifacts
+build/
+dist/
+*.spec
+build.ps1
