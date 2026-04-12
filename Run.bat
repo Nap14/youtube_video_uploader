@@ -19,6 +19,12 @@ if not exist "venv" (
     pip install -r requirements.txt
 ) else (
     call venv\Scripts\activate.bat
+    :: Check if new dependencies are missing
+    python -c "import customtkinter" >nul 2>&1
+    if errorlevel 1 (
+        echo [INFO] New dependencies found. Installing...
+        pip install -r requirements.txt
+    )
 )
 
 echo [INFO] Starting YouTube Uploader...
