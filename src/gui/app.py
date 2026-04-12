@@ -1,11 +1,14 @@
 import customtkinter as ctk
 import json
+import threading
+import os
 from .sidebar import Sidebar
 from .dashboard import DashboardFrame
 from .settings import SettingsFrame
 from .schedule import ScheduleCalendarFrame
 from .reports import ReportsFrame
-from .modals import LessonEditModal
+from .planner import PlannerFrame
+from ..core.scheduler import SchedulerService
 
 class GuiApp(ctk.CTk):
     def __init__(self, config, schedule, paths):
@@ -21,22 +24,70 @@ class GuiApp(ctk.CTk):
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
         self.setup_ui()
+        
+        self.scheduler = SchedulerService(self.config, self.trigger_automation_from_planner)
+        self.scheduler.start()
+        
+        self.protocol("WM_DELETE_WINDOW", self.hide_to_tray)
+        self.setup_tray()
+
+    def setup_tray(self):
+        import pystray
+        from PIL import Image, ImageDraw
+        
+        # Create a simple icon
+        icon_img = Image.new('RGB', (64, 64), color=(31, 119, 180))
+        d = ImageDraw.Draw(icon_img)
+        d.rectangle([16, 16, 48, 48], fill="white")
+        
+        menu = (pystray.MenuItem('Open', self.show_window), pystray.MenuItem('Exit', self.exit_app))
+        self.tray_icon = pystray.Icon("ZoomUploader", icon_img, "Zoom Uploader", menu)
+        threading.Thread(target=self.tray_icon.run, daemon=True).start()
+
+    def hide_to_tray(self):
+        self.withdraw()
+
+    def show_window(self):
+        self.deiconify()
+
+    def exit_app(self):
+        self.scheduler.stop()
+        self.tray_icon.stop()
+        self.quit()
 
     def setup_ui(self):
-        self.sidebar = Sidebar(self, self.select_frame, self.change_theme, self.theme, width=200, corner_radius=0)
+        self.sidebar = Sidebar(self, self.select_frame, width=200, corner_radius=0)
         self.sidebar.grid(row=0, column=0, sticky="nsew")
         
         self.frames = {
             "dashboard": DashboardFrame(self, self.start_automation, fg_color="transparent"),
-            "settings": SettingsFrame(self, self.config, self.paths, self.browse_dir, self.save_settings, fg_color="transparent"),
+            "settings": SettingsFrame(self, self.config, self.paths, self.browse_dir, self.save_settings, self.change_theme, fg_color="transparent"),
             "schedule": ScheduleCalendarFrame(self, self.schedule, self.open_edit, fg_color="transparent"),
-            "reports": ReportsFrame(self, self.config, fg_color="transparent")
+            "reports": ReportsFrame(self, self.config, fg_color="transparent"),
+            "planner": PlannerFrame(self, self.config, fg_color="transparent")
         }
         
         if not self.config.get_zoom_dir():
             self.select_frame("settings")
         else:
             self.select_frame("dashboard")
+
+    def trigger_automation_from_planner(self, mode):
+        p_cfg = self.config.get_planner_config()
+        if p_cfg.get("require_confirmation"):
+            from tkinter import messagebox
+            self.after(0, lambda: self._show_confirmation(mode))
+        else:
+            self.after(0, lambda: self._run_automation_with_mode(mode))
+
+    def _show_confirmation(self, mode):
+        from tkinter import messagebox
+        if messagebox.askyesno("Planner Task", f"Scheduled automation (Mode {mode}) is about to start. Proceed?"):
+            self._run_automation_with_mode(mode)
+
+    def _run_automation_with_mode(self, mode):
+        self.frames["dashboard"].mode_var.set(mode)
+        self.start_automation()
 
     def select_frame(self, name):
         for f in self.frames.values(): f.grid_forget()
