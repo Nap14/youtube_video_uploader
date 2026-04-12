@@ -45,7 +45,7 @@ class LessonEditModal(ctk.CTkToplevel):
         self.lms_id_entry.grid(row=3, column=1, padx=20, pady=5, sticky="w")
         if self.value and isinstance(self.value, dict): self.lms_id_entry.insert(0, self.value.get("lms_course_id", ""))
 
-        # Image & Duration & Buttons
+        # Image & Duration & Color
         self.create_extended_widgets()
 
     def create_extended_widgets(self):
@@ -57,10 +57,23 @@ class LessonEditModal(ctk.CTkToplevel):
         if self.value and isinstance(self.value, dict): self.img_entry.insert(0, self.value.get("thumbnail") or self.value.get("image", ""))
         ctk.CTkButton(img_f, text="Browse", width=80, command=self.browse_img).pack(side="left", padx=(10, 0))
 
-        ctk.CTkLabel(self, text="Duration:").grid(row=6, column=0, padx=20, pady=(10,0), sticky="w")
-        self.dur_entry = ctk.CTkEntry(self, width=100)
-        self.dur_entry.grid(row=7, column=0, padx=20, pady=5, sticky="w")
+        # Color & Duration Row
+        f_cd = ctk.CTkFrame(self, fg_color="transparent")
+        f_cd.grid(row=6, column=0, columnspan=2, padx=20, pady=(10,0), sticky="w")
+        
+        ctk.CTkLabel(f_cd, text="Duration:").pack(side="left")
+        self.dur_entry = ctk.CTkEntry(f_cd, width=70)
+        self.dur_entry.pack(side="left", padx=10)
         self.dur_entry.insert(0, "60" if not self.value or isinstance(self.value, str) else str(self.value.get("duration", 60)))
+        
+        ctk.CTkLabel(f_cd, text="Color:").pack(side="left", padx=(20,0))
+        self.color_preview = ctk.CTkLabel(f_cd, text="", width=30, height=20, corner_radius=4, fg_color="gray")
+        self.color_preview.pack(side="left", padx=10)
+        
+        self.chosen_color = self.value.get("color") if isinstance(self.value, dict) else None
+        if self.chosen_color: self.color_preview.configure(fg_color=self.chosen_color)
+        
+        ctk.CTkButton(f_cd, text="Pick", width=60, height=22, command=self.pick_color).pack(side="left")
 
         bf = ctk.CTkFrame(self, fg_color="transparent")
         bf.grid(row=8, column=0, columnspan=2, padx=20, pady=40, sticky="ew")
@@ -68,6 +81,13 @@ class LessonEditModal(ctk.CTkToplevel):
         if self.old_day and self.old_time and self.value:
             ctk.CTkButton(bf, text="Delete", fg_color="#e74c3c", command=self.delete, width=120).pack(side="left", padx=5)
         ctk.CTkButton(bf, text="Cancel", fg_color="gray", command=self.destroy, width=120).pack(side="right", padx=5)
+
+    def pick_color(self):
+        from tkinter import colorchooser
+        _, hex_c = colorchooser.askcolor(initialcolor=self.chosen_color or "#3b8ed0")
+        if hex_c:
+            self.chosen_color = hex_c
+            self.color_preview.configure(fg_color=hex_c)
 
     def browse_img(self):
         f = filedialog.askopenfilename()
@@ -80,7 +100,7 @@ class LessonEditModal(ctk.CTkToplevel):
         new_data = (self.value if isinstance(self.value, dict) else {}).copy()
         new_data.update({"name": name, "lms_course_id": self.lms_id_entry.get(), 
                          "duration": int(self.dur_entry.get() if self.dur_entry.get().isdigit() else 60),
-                         "thumbnail": self.img_entry.get()})
+                         "thumbnail": self.img_entry.get(), "color": self.chosen_color})
         if "image" in new_data: del new_data["image"]
         
         if d not in self.schedule: self.schedule[d] = {}

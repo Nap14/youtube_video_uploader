@@ -41,7 +41,10 @@ class ScheduleCalendarFrame(ctk.CTkScrollableFrame):
                     if row_idx < 1: continue
                     name = data if isinstance(data, str) else data.get("name", "Unnamed")
                     duration = 60 if isinstance(data, str) else int(data.get("duration", 60))
-                    row_span, (cl, cd) = max(1, duration // 60), self.get_course_color(name)
+                    
+                    # Color logic: manual or hashed
+                    manual_c = None if isinstance(data, str) else data.get("color")
+                    row_span, (cl, cd) = max(1, duration // 60), (manual_c, manual_c) if manual_c else self.get_course_color(name)
                     
                     wrapped = "\n".join([name[i:i+12] for i in range(0, len(name), 12)]) if len(name) > 12 else name
                     btn = ctk.CTkButton(self, text=wrapped, fg_color=(cl, cd), text_color=("black", "white"), 
