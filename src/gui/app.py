@@ -1,14 +1,15 @@
 import customtkinter as ctk
-import json
-import threading
-import os
+import json, os
 from .sidebar import Sidebar
 from .dashboard import DashboardFrame
 from .settings import SettingsFrame
 from .schedule import ScheduleCalendarFrame
 from .reports import ReportsFrame
+from .modals.lesson import LessonEditModal
 from .planner import PlannerFrame
+from .tray_manager import TrayManager
 from ..core.scheduler import SchedulerService
+from ..services.automation_runner import start_automation_task
 
 class GuiApp(ctk.CTk):
     def __init__(self, config, schedule, paths):
@@ -17,48 +18,20 @@ class GuiApp(ctk.CTk):
         self.title("Zoom Video Automation")
         self.geometry("1100x600")
         self.minsize(900, 500)
-        
-        self.theme = self.config.get_data().get("THEME", "Dark")
-        ctk.set_appearance_mode(self.theme)
+        ctk.set_appearance_mode(self.config.get_data().get("THEME", "Dark"))
         
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
         self.setup_ui()
         
-        self.scheduler = SchedulerService(self.config, self.trigger_automation_from_planner)
+        self.scheduler = SchedulerService(self.config, self.trigger_automation)
         self.scheduler.start()
-        
-        self.protocol("WM_DELETE_WINDOW", self.hide_to_tray)
-        self.setup_tray()
-
-    def setup_tray(self):
-        import pystray
-        from PIL import Image, ImageDraw
-        
-        # Create a simple icon
-        icon_img = Image.new('RGB', (64, 64), color=(31, 119, 180))
-        d = ImageDraw.Draw(icon_img)
-        d.rectangle([16, 16, 48, 48], fill="white")
-        
-        menu = (pystray.MenuItem('Open', self.show_window), pystray.MenuItem('Exit', self.exit_app))
-        self.tray_icon = pystray.Icon("ZoomUploader", icon_img, "Zoom Uploader", menu)
-        threading.Thread(target=self.tray_icon.run, daemon=True).start()
-
-    def hide_to_tray(self):
-        self.withdraw()
-
-    def show_window(self):
-        self.deiconify()
-
-    def exit_app(self):
-        self.scheduler.stop()
-        self.tray_icon.stop()
-        self.quit()
+        self.tray = TrayManager(self, self.exit_app)
+        self.protocol("WM_DELETE_WINDOW", lambda: self.withdraw())
 
     def setup_ui(self):
         self.sidebar = Sidebar(self, self.select_frame, width=200, corner_radius=0)
         self.sidebar.grid(row=0, column=0, sticky="nsew")
-        
         self.frames = {
             "dashboard": DashboardFrame(self, self.start_automation, fg_color="transparent"),
             "settings": SettingsFrame(self, self.config, self.paths, self.browse_dir, self.save_settings, self.change_theme, fg_color="transparent"),
@@ -66,35 +39,26 @@ class GuiApp(ctk.CTk):
             "reports": ReportsFrame(self, self.config, fg_color="transparent"),
             "planner": PlannerFrame(self, self.config, fg_color="transparent")
         }
-        
-        if not self.config.get_zoom_dir():
-            self.select_frame("settings")
-        else:
-            self.select_frame("dashboard")
+        self.select_frame("settings" if not self.config.get_zoom_dir() else "dashboard")
 
-    def trigger_automation_from_planner(self, mode):
-        p_cfg = self.config.get_planner_config()
-        if p_cfg.get("require_confirmation"):
+    def trigger_automation(self, mode):
+        def start_now():
+            self.frames["dashboard"].mode_var.set(mode)
+            self.start_automation(task_prefix="auto_")
+
+        if self.config.get_planner_config().get("require_confirmation"):
             from tkinter import messagebox
-            self.after(0, lambda: self._show_confirmation(mode))
+            msg = f"Scheduled video upload (Mode {mode}) is about to start. Proceed?"
+            self.after(0, lambda: messagebox.askyesno("Planner Task", msg) and start_now())
         else:
-            self.after(0, lambda: self._run_automation_with_mode(mode))
-
-    def _show_confirmation(self, mode):
-        from tkinter import messagebox
-        if messagebox.askyesno("Planner Task", f"Scheduled automation (Mode {mode}) is about to start. Proceed?"):
-            self._run_automation_with_mode(mode)
-
-    def _run_automation_with_mode(self, mode):
-        self.frames["dashboard"].mode_var.set(mode)
-        self.start_automation()
+            self.after(0, start_now)
 
     def select_frame(self, name):
         for f in self.frames.values(): f.grid_forget()
         self.frames[name].grid(row=0, column=1, sticky="nsew")
         self.sidebar.highlight_button(name)
-        if name == "schedule": self.frames[name].refresh()
-        if name == "reports": self.frames[name].refresh_reports()
+        calls = {"schedule": "refresh", "reports": "refresh_reports", "planner": "refresh_history"}
+        if name in calls: getattr(self.frames[name], calls[name])()
 
     def change_theme(self, mode):
         ctk.set_appearance_mode(mode)
@@ -105,83 +69,26 @@ class GuiApp(ctk.CTk):
         LessonEditModal(self, self.schedule, d, t, v, on_save=self.on_schedule_save)
 
     def on_schedule_save(self):
-        try:
-            with open(self.paths['SCHEDULE_FILE'], 'w', encoding='utf-8') as f:
-                json.dump(self.schedule, f, ensure_ascii=False, indent=4)
-            self.frames["schedule"].refresh()
-        except Exception as e: print(f"Save error: {e}")
+        with open(self.paths['SCHEDULE_FILE'], 'w', encoding='utf-8') as f:
+            json.dump(self.schedule, f, ensure_ascii=False, indent=4)
+        self.frames["schedule"].refresh()
 
     def browse_dir(self):
         from tkinter import filedialog
         d = filedialog.askdirectory(initialdir=self.frames["settings"].zoom_dir_entry.get())
-        if d: self.frames["settings"].zoom_dir_entry.delete(0, "end"); self.frames["settings"].zoom_dir_entry.insert(0, d)
+        if d: 
+            self.frames["settings"].zoom_dir_entry.delete(0, "end")
+            self.frames["settings"].zoom_dir_entry.insert(0, d)
 
     def save_settings(self):
         f = self.frames["settings"]
         self.config.get_data().update({"ZOOM_DIR": f.zoom_dir_entry.get(), "LMS_TOKEN": f.lms_token_entry.get(), 
                                       "SCHOOL_ID": f.school_id_entry.get()})
         self.config.save()
+        f.show_status()
 
-    def start_automation(self):
-        import threading
-        from ..core.engine import process_youtube, process_lms
-        from ..services.youtube.auth import Oauth2Service
-        from ..services.report_utils import create_report
+    def start_automation(self, task_prefix=""):
+        start_automation_task(self, task_prefix)
 
-        def run():
-            logger = GuiLogger(self.frames["dashboard"].log_text)
-            zoom_dir = self.config.get_zoom_dir()
-            
-            if not zoom_dir:
-                logger.error("Configuration Error: Zoom Directory is not set!")
-                logger.info("Please go to Settings and select your Zoom recordings folder.")
-                return
-
-            mode = self.frames["dashboard"].mode_var.get()
-            self.frames["dashboard"].start_btn.configure(state="disabled")
-            
-            try:
-                oauth = Oauth2Service(logger)
-                youtube = None
-                if mode in ["1", "2"]:
-                    youtube = oauth.get_service(self.paths['TOKEN_FILE'], self.paths['SECRETS_FILE'])
-                
-                def cb(m, p): self.after(0, lambda: self.frames["dashboard"].progress_bar.set(p[0]/p[1]))
-                
-                yt_res = []
-                if mode in ["1", "2"]:
-                    yt_res = process_youtube(self.config, self.schedule, youtube, logger, cb)
-                    if yt_res: create_report(yt_res, self.config.get_reports_dir(), "youtube")
-                
-                if mode == "3":
-                    from tkinter import filedialog
-                    import csv
-                    file_path = filedialog.askopenfilename(title="Select YouTube Report CSV", filetypes=[("CSV Files", "*.csv")])
-                    if not file_path:
-                        logger.warning("No file selected. LMS sync aborted.")
-                        return
-                    with open(file_path, mode='r', encoding='utf-8') as f:
-                        reader = csv.reader(f)
-                        next(reader) # skip header
-                        yt_res = list(reader)
-                    logger.info(f"Loaded {len(yt_res)} rows from {os.path.basename(file_path)}")
-
-                if mode in ["1", "3"]:
-                    lms_res = process_lms(yt_res, self.config, self.schedule, logger, cb)
-                    if lms_res: create_report(lms_res, self.config.get_reports_dir(), "lms")
-                
-                logger.info("Task Completed!")
-            except Exception as e: logger.error(f"Fatal: {e}")
-            finally: self.after(0, lambda: self.frames["dashboard"].start_btn.configure(state="normal"))
-
-        threading.Thread(target=run, daemon=True).start()
-
-class GuiLogger:
-    def __init__(self, text_widget): self.text_widget = text_widget
-    def info(self, m): self._log(f"INFO: {m}")
-    def error(self, m): self._log(f"ERROR: {m}")
-    def warning(self, m): self._log(f"WARN: {m}")
-    def _log(self, m):
-        self.text_widget.configure(state="normal")
-        self.text_widget.insert("end", f"{m}\n"); self.text_widget.see("end")
-        self.text_widget.configure(state="disabled")
+    def exit_app(self):
+        self.scheduler.stop(); self.tray.stop(); self.quit()

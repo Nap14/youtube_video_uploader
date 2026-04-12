@@ -47,7 +47,15 @@ class SettingsFrame(ctk.CTkFrame):
         self.school_id_entry.grid(row=8, column=0, padx=30, pady=(0, 20), sticky="w")
         self.school_id_entry.insert(0, self.config.get_school_id() or "")
 
-        ctk.CTkButton(self, text="Save Settings", command=self.save_cmd, width=150).grid(row=9, column=0, padx=30, pady=20, sticky="w")
+        sf = ctk.CTkFrame(self, fg_color="transparent")
+        sf.grid(row=9, column=0, padx=30, pady=20, sticky="w")
+        ctk.CTkButton(sf, text="Save Settings", command=self.save_cmd, width=150).pack(side="left")
+        self.status_label = ctk.CTkLabel(sf, text="", text_color="#2ecc71", font=ctk.CTkFont(size=12))
+        self.status_label.pack(side="left", padx=20)
+
+    def show_status(self, text="Settings Saved!"):
+        self.status_label.configure(text=text)
+        self.after(3000, lambda: self.status_label.configure(text=""))
 
     def _add_label_with_help(self, text, help_msg):
         row = (self.grid_size()[1])
