@@ -49,10 +49,11 @@ class PlannerFrame(ctk.CTkFrame):
         self.confirm_var_ck = ctk.CTkCheckBox(self.inputs_f, text="Require confirmation before start", variable=self.confirm_var)
         self.confirm_var_ck.grid(row=6, column=0, padx=10, pady=20, sticky="w")
 
-        bf = ctk.CTkFrame(self.settings_f, fg_color="transparent")
-        bf.grid(row=1, column=0, padx=10, pady=20, sticky="w")
-        ctk.CTkButton(bf, text="Save Settings", command=self.save, width=150, fg_color="#3498db").pack(side="left")
-        self.status_label = ctk.CTkLabel(bf, text="", text_color="#2ecc71", font=ctk.CTkFont(size=12))
+        self.actions_f = ctk.CTkFrame(self.settings_f, fg_color="transparent")
+        self.settings_f.grid_rowconfigure(9, weight=1)
+        self.actions_f.grid(row=10, column=0, padx=10, pady=20, sticky="sw")
+        ctk.CTkButton(self.actions_f, text="Save Settings", command=self.save, width=150, fg_color="#3498db").pack(side="left")
+        self.status_label = ctk.CTkLabel(self.actions_f, text="", text_color="#2ecc71", font=ctk.CTkFont(size=12))
         self.status_label.pack(side="left", padx=20)
 
         self.log_f = HistoryLogFrame(self, self.config)

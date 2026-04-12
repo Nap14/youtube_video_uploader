@@ -47,8 +47,10 @@ class SettingsFrame(ctk.CTkFrame):
         self.school_id_entry.grid(row=8, column=0, padx=30, pady=(0, 20), sticky="w")
         self.school_id_entry.insert(0, self.config.get_school_id() or "")
 
+        # Push the Save button to the bottom
+        self.grid_rowconfigure(19, weight=1)
         sf = ctk.CTkFrame(self, fg_color="transparent")
-        sf.grid(row=9, column=0, padx=30, pady=20, sticky="w")
+        sf.grid(row=20, column=0, padx=30, pady=20, sticky="sw")
         ctk.CTkButton(sf, text="Save Settings", command=self.save_cmd, width=150).pack(side="left")
         self.status_label = ctk.CTkLabel(sf, text="", text_color="#2ecc71", font=ctk.CTkFont(size=12))
         self.status_label.pack(side="left", padx=20)

@@ -19,18 +19,24 @@ class GuiLogger:
             self.text_widget.configure(state="disabled")
         self.text_widget.after(0, update)
 
+_EXECUTION_LOCK = threading.Lock()
+
 def start_automation_task(app, task_prefix=""):
     def run():
         dash = app.frames["dashboard"]
         logger = GuiLogger(dash.log_text)
-        zoom_dir = app.config.get_zoom_dir()
-        if not zoom_dir:
-            logger.error("Zoom Directory is not set!")
+        
+        if not _EXECUTION_LOCK.acquire(blocking=False):
+            logger.error("Automation is already in progress. Task skipped.")
             return
 
-        mode = dash.mode_var.get()
-        dash.start_btn.configure(state="disabled")
         try:
+            if not app.config.get_zoom_dir():
+                logger.error("Zoom Directory is not set!"); return
+
+            mode = dash.mode_var.get()
+            dash.start_btn.configure(state="disabled")
+            
             oauth = Oauth2Service(logger)
             youtube = oauth.get_service(app.paths['TOKEN_FILE'], app.paths['SECRETS_FILE']) if mode in ["1", "2"] else None
             
@@ -55,6 +61,8 @@ def start_automation_task(app, task_prefix=""):
             logger.info("Task Completed!")
             if task_prefix == "auto_": app.after(0, app.frames["planner"].refresh_history)
         except Exception as e: logger.error(f"Fatal: {e}")
-        finally: app.after(0, lambda: dash.start_btn.configure(state="normal"))
+        finally:
+            _EXECUTION_LOCK.release()
+            app.after(0, lambda: dash.start_btn.configure(state="normal"))
 
     threading.Thread(target=run, daemon=True).start()
