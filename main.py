@@ -20,7 +20,6 @@ CLIENT_SECRETS_FILE = os.path.join(CONFIGS_DIR, "client_secret.json")
 TOKEN_FILE = os.path.join(CONFIGS_DIR, "token.json")
 SCHEDULE_FILE = os.path.join(CONFIGS_DIR, "schedule.json")
 
-# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def process_youtube_uploads(config, schedule, youtube, reports_dir):
@@ -230,6 +229,5 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print("\nAborted by user.")
     except Exception as e:
-        # Don't show critical log if it's just a GUI close
         if "main thread is not in main loop" not in str(e):
             logging.critical(f"Fatal error: {e}", exc_info=True)

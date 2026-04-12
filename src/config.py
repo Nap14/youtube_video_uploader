@@ -9,6 +9,9 @@ class Config:
         self.logging = logging
         self.data = self._load()
 
+    def get_data(self):
+        return self.data
+
     def _load(self):
         if os.path.exists(self.config_file):
             try:
