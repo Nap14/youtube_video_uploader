@@ -95,7 +95,7 @@ def process_zoom_folders():
              playlist_service = PlaylistController(youtube, logging)
              playlist_service.add_video_to_playlist(video_id, course_name)
              
-             report_lines.append(f"{folder_date.strftime('%H:%M')} | {course_name} | Link: {video_url}")
+             report_lines.append(f"{folder_date.strftime('%d.%m.%Y %H:%M')} | {course_name} | Link: {video_url}")
              
              logging.info(f"Video uploaded successfully. Moving folder '{folder}' to Trash...")
              try:
