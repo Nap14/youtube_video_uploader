@@ -9,23 +9,37 @@ class ConsoleLogger:
     def error(self, m): print(f"[ERROR] {m}")
     def warning(self, m): print(f"[WARN] {m}")
 
+def get_base_dir():
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
+
 def main():
     print("\n=== Zoom Video Automation (Terminal Version) ===\n")
     
-    # Load paths and config
-    base_path = os.path.dirname(os.path.abspath(__file__))
+    # Base setup
+    base_path = get_base_dir()
+    configs_dir = os.path.join(base_path, 'configs')
+    
+    # Ensure configs directory exists
+    if not os.path.exists(configs_dir):
+        os.makedirs(configs_dir)
+        
     paths = {
-        'CONFIG_DIR': os.path.join(base_path, 'configs'),
-        'CONFIG_FILE': os.path.join(base_path, 'configs', 'config.json'),
-        'SCHEDULE_FILE': os.path.join(base_path, 'configs', 'schedule.json'),
-        'TOKEN_FILE': os.path.join(base_path, 'configs', 'token.json'),
-        'SECRETS_FILE': os.path.join(base_path, 'configs', 'client_secret.json'),
+        'CONFIG_DIR': configs_dir,
+        'CONFIG_FILE': os.path.join(configs_dir, 'config.json'),
+        'SCHEDULE_FILE': os.path.join(configs_dir, 'schedule.json'),
+        'TOKEN_FILE': os.path.join(configs_dir, 'token.json'),
+        'SECRETS_FILE': os.path.join(configs_dir, 'client_secret.json'),
         'REPORTS_DIR': os.path.join(base_path, 'reports')
     }
     
     config = Config(paths['CONFIG_FILE'], paths['REPORTS_DIR'])
-    if not os.path.exists(paths['SCHEDULE_FILE']):
-        print(f"[ERROR] Schedule file not found at {paths['SCHEDULE_FILE']}")
+    
+    if not os.path.exists(paths['SECRETS_FILE']):
+        print(f"[ERROR] Файл 'client_secret.json' не знайдено у {configs_dir}")
+        print("Будь ласка, зверніться до адміністратора за детальною інформацією щодо налаштування.")
+        input("\nНатисніть Enter, щоб вийти...")
         return
     with open(paths['SCHEDULE_FILE'], 'r', encoding='utf-8') as f:
         schedule = json.load(f)
