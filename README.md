@@ -13,10 +13,10 @@ Automatic uploading of lesson recordings from Zoom to YouTube with playlist orga
 ## Setup
 
 ### 1. Google API
-Place the `client_secret.json` file (obtained in Google Cloud Console) in the root project folder.
+Place the `client_secret.json` file (obtained in Google Cloud Console) in the `configs/` project folder.
 
-### 2. Schedule (`schedule.json`)
-Create a `schedule.json` file in the project root based on this example:
+### 2. Schedule (`configs/schedule.json`)
+Create a `schedule.json` file in the `configs/` folder based on this example:
 ```json
 {
   "Monday": {

@@ -169,7 +169,7 @@ class LmsService:
         try:
             response = requests.get(lessons_url, headers=self.headers)
             if response.status_code == 401:
-                self.logging.error("LMS Token expired or invalid! Please update it in config.json.")
+                self.logging.error("LMS Token expired or invalid! Please update it in configs/config.json.")
                 return []
             
             if response.status_code != 200:

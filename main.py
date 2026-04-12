@@ -14,10 +14,11 @@ from src.config import Config
 from src.lms_service import LmsService
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
-CLIENT_SECRETS_FILE = os.path.join(BASE_DIR, "client_secret.json")
-TOKEN_FILE = os.path.join(BASE_DIR, "token.json")
-SCHEDULE_FILE = os.path.join(BASE_DIR, "schedule.json")
+CONFIGS_DIR = os.path.join(BASE_DIR, "configs")
+CONFIG_FILE = os.path.join(CONFIGS_DIR, "config.json")
+CLIENT_SECRETS_FILE = os.path.join(CONFIGS_DIR, "client_secret.json")
+TOKEN_FILE = os.path.join(CONFIGS_DIR, "token.json")
+SCHEDULE_FILE = os.path.join(CONFIGS_DIR, "schedule.json")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

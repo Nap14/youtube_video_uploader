@@ -1,8 +1,9 @@
 # Secrets
-client_secret.json
-token.json
-schedule.json
-config.json
+configs/client_secret.json
+configs/token.json
+configs/schedule.json
+configs/config.json
+configs/names.json
 
 # Virtual Environment
 venv/
