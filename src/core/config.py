@@ -40,3 +40,18 @@ class Config:
         if not os.path.exists(d): os.makedirs(d, exist_ok=True)
         return d
 
+    def get_planner_config(self):
+        return self.data.get("PLANNER", {
+            "enabled": False,
+            "frequency": "daily", 
+            "interval": 1,
+            "time": "20:00",
+            "day": "Monday",
+            "mode": "1",
+            "require_confirmation": True
+        })
+
+    def save_planner_config(self, config):
+        self.data["PLANNER"] = config
+        self.save()
+
