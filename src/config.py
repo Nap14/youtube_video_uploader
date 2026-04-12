@@ -51,3 +51,15 @@ class Config:
             self.save()
             
         return zoom_dir
+
+    def get_lms_token(self):
+        return self.data.get("LMS_TOKEN")
+
+    def get_reports_dir(self):
+        reports_dir = self.data.get("REPORTS_DIR", "reports")
+        if not os.path.exists(reports_dir):
+            os.makedirs(reports_dir, exist_ok=True)
+        return reports_dir
+
+    def get_school_id(self):
+        return self.data.get("SCHOOL_ID", "18828")
