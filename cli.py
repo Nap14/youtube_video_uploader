@@ -1,49 +1,37 @@
+from src.services.schedule_utils import load_schedule
 import sys
 import os
-import json
+
 from src.core.config import Config
-from src.services.automation_core import execute_automation
+from src.constants import ERRORS
+from src.services.automation_core import AutomationCore
+from src.services.console_loger import ConsoleLogger
+from src.services.file_utils import get_base_dir
 
-class ConsoleLogger:
-    def info(self, m): print(f"[INFO] {m}")
-    def error(self, m): print(f"[ERROR] {m}")
-    def warning(self, m): print(f"[WARN] {m}")
+BASE_DIR = get_base_dir(__file__)
+CONFIGS_DIR = os.path.join(BASE_DIR, 'configs')
 
-def get_base_dir():
-    if getattr(sys, 'frozen', False):
-        return os.path.dirname(sys.executable)
-    return os.path.dirname(os.path.abspath(__file__))
+    
+PATHS = {
+    'BASE_DIR': BASE_DIR,
+    'CONFIG_DIR': CONFIGS_DIR,
+    'CONFIG_FILE': os.path.join(CONFIGS_DIR, 'config.json'),
+    'SCHEDULE_FILE': os.path.join(CONFIGS_DIR, 'schedule.json'),
+    'TOKEN_FILE': os.path.join(CONFIGS_DIR, 'token.json'),
+    'SECRETS_FILE': os.path.join(CONFIGS_DIR, 'client_secret.json'),
+    'REPORTS_DIR': os.path.join(BASE_DIR, 'reports')
+}
 
-def main():
-    print("\n=== Zoom Video Automation (Terminal Version) ===\n")
-    
-    # Base setup
-    base_path = get_base_dir()
-    configs_dir = os.path.join(base_path, 'configs')
-    
-    # Ensure configs directory exists
-    if not os.path.exists(configs_dir):
-        os.makedirs(configs_dir)
-        
-    paths = {
-        'CONFIG_DIR': configs_dir,
-        'CONFIG_FILE': os.path.join(configs_dir, 'config.json'),
-        'SCHEDULE_FILE': os.path.join(configs_dir, 'schedule.json'),
-        'TOKEN_FILE': os.path.join(configs_dir, 'token.json'),
-        'SECRETS_FILE': os.path.join(configs_dir, 'client_secret.json'),
-        'REPORTS_DIR': os.path.join(base_path, 'reports')
-    }
-    
-    config = Config(paths['CONFIG_FILE'], paths['REPORTS_DIR'])
-    
-    if not os.path.exists(paths['SECRETS_FILE']):
-        print(f"[ERROR] Файл 'client_secret.json' не знайдено у {configs_dir}")
-        print("Будь ласка, зверніться до адміністратора за детальною інформацією щодо налаштування.")
-        input("\nНатисніть Enter, щоб вийти...")
-        return
-    with open(paths['SCHEDULE_FILE'], 'r', encoding='utf-8') as f:
-        schedule = json.load(f)
+config = Config(PATHS['CONFIG_FILE'], PATHS['REPORTS_DIR'])
 
+def progress_cb(msg, p):
+    sys.stdout.write(f"\rProgress: [{p[0]}/{p[1]}] {msg} ".ljust(80))
+    sys.stdout.flush()
+
+    if p[0] == p[1]: 
+        print("\n")
+
+def get_choice():
     print("Select Mode:")
     print("1. YouTube Upload + LMS Sync")
     print("2. YouTube Upload Only")
@@ -51,10 +39,30 @@ def main():
     print("Q. Quit")
     
     choice = input("\nEnter choice (1-3 or Q): ").strip().upper()
-    if choice == 'Q': return
+
+    if choice == 'Q': 
+        return
+
     if choice not in ['1', '2', '3']:
         print("Invalid choice.")
         return
+
+    return choice
+
+def main():
+    print("\n=== Zoom Video Automation (Terminal Version) ===\n")
+
+    if not os.path.exists(CONFIGS_DIR):
+        os.makedirs(CONFIGS_DIR)
+    
+    if not os.path.exists(PATHS['SECRETS_FILE']):
+        print(f"[ERROR] {ERRORS['NO_SECRETS']} (expected at {CONFIGS_DIR})")
+        print("Please contact your administrator for detailed configuration information.")
+        input("\nPress Enter to exit...")
+        return
+
+    choice = get_choice()
+    if not choice: return
 
     lms_csv = None
     if choice == '3':
@@ -64,13 +72,11 @@ def main():
             return
 
     logger = ConsoleLogger()
-    def progress_cb(msg, p):
-        sys.stdout.write(f"\rProgress: [{p[0]}/{p[1]}] {msg} ".ljust(80))
-        sys.stdout.flush()
-        if p[0] == p[1]: print("\n")
+    schedule = load_schedule(PATHS['SCHEDULE_FILE'])
 
     try:
-        execute_automation(config, schedule, paths, choice, logger, progress_cb, lms_csv_path=lms_csv)
+        automation = AutomationCore(config, schedule, PATHS, logger, progress_cb, error_cb=lambda t, m: logger.error(f"{t}: {m}"))
+        automation.execute_automation(choice, lms_csv_path=lms_csv)
     except Exception as e:
         print(f"\n[FATAL] {e}")
 

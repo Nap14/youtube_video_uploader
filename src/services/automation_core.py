@@ -1,51 +1,113 @@
 import os
 import csv
 import threading
-from ..core.engine import process_lms
-from ..core.youtube_engine import process_youtube
+from typing import List, Optional, Callable
+
 from ..services.youtube.auth import Oauth2Service
+from ..services.youtube.video import VideoService
+from ..services.youtube.playlist import PlaylistController
+from ..services.youtube.engine import YoutubeProcessor
 from ..services.report_utils import create_report
+from ..services.lms.engine import LmsProcessor
+from ..services.lms.service import LmsService
 
 _EXECUTION_LOCK = threading.Lock()
 
-def execute_automation(config, schedule, paths, mode, logger, progress_cb, lms_csv_path=None, task_prefix=""):
-    """
-    Core sequence: YouTube upload -> LMS sync with execution locking.
-    """
-    if not _EXECUTION_LOCK.acquire(blocking=False):
-        logger.error("Automation is already in progress. Task skipped.")
-        return False
+class AutomationCore:
+    def __init__(self, config, schedule: dict, paths: dict, logger, progress_cb: Callable, error_cb: Optional[Callable[[str, str], None]] = None):
+        self.config = config
+        self.schedule = schedule
+        self.paths = paths
+        self.logger = logger
+        self.progress_cb = progress_cb
+        self.error_cb = error_cb
 
-    try:
-        yt_res = []
+    def _upload_video(self, task_prefix: str = '') -> List[List[str]]:
+        oauth = Oauth2Service(self.logger)
+        youtube = oauth.get_service(self.paths['TOKEN_FILE'], self.paths['SECRETS_FILE'])
         
-        # 1. YouTube Upload Phase
-        if mode in ["1", "2"]:
-            oauth = Oauth2Service(logger)
-            youtube = oauth.get_service(paths['TOKEN_FILE'], paths['SECRETS_FILE'])
-            yt_res = process_youtube(config, schedule, youtube, logger, progress_cb)
-            if yt_res:
-                create_report(yt_res, config.get_reports_dir(), f"{task_prefix}youtube")
+        vs = VideoService(youtube, self.logger)
+        pc = PlaylistController(youtube, self.logger)
         
-        # 2. LMS Sync Phase (from YouTube results or CSV)
-        if mode == "3" and lms_csv_path:
-            if not os.path.exists(lms_csv_path):
-                logger.error(f"File not found: {lms_csv_path}")
-                return False
-            with open(lms_csv_path, mode='r', encoding='utf-8') as f_obj:
-                yt_res = list(csv.reader(f_obj))[1:]
-            logger.info(f"Loaded {len(yt_res)} records from CSV.")
+        processor = YoutubeProcessor(
+            vs, pc, self.config, self.schedule, self.logger, 
+            root_dir=self.paths['BASE_DIR'],
+            error_cb=self.error_cb
+        )
+        result = processor.process(self.progress_cb)
 
-        if mode in ["1", "3"]:
-            if not yt_res:
-                logger.warning("No data for LMS sync.")
-            else:
-                lms_res = process_lms(yt_res, config, schedule, logger, progress_cb)
-                if lms_res:
-                    headers = ["Date", "Course", "Lesson Name", "Status", "Details"]
-                    create_report(lms_res, config.get_reports_dir(), f"{task_prefix}lms", headers=headers)
-        
-        logger.info("Automation Sequence Completed!")
-        return True
-    finally:
-        _EXECUTION_LOCK.release()
+        if not result:
+            return []
+
+        create_report(result, self.config.get_reports_dir(), f"{task_prefix}youtube")
+        return result
+
+    def _get_lms_service(self) -> Optional[LmsService]:
+        try:
+            token = self.config.get_lms_token()
+            return LmsService(token, self.logger)
+        except ValueError as e:
+            msg = "LMS Sync failed: Token is missing in settings."
+            self.logger.error(e)
+            if self.error_cb:
+                self.error_cb("Config Error", msg)
+            return None
+
+    def _sync_lms(self, yt_res: List[List[str]], task_prefix: str = ""):
+        if not yt_res:
+            return self.logger.warning("No data for LMS sync.")
+
+        lms_service = self._get_lms_service()
+        if not lms_service:
+            return
+
+        processor = LmsProcessor(
+            lms_service,
+            self.config,
+            self.schedule,
+            self.logger,
+            error_cb=self.error_cb
+        )
+
+        lms_res = processor.process(yt_res, self.progress_cb)
+        if not lms_res:
+            return
+
+        headers = ["Date", "Course", "Lesson Name", "Status", "Details"]
+        create_report(lms_res, self.config.get_reports_dir(), f"{task_prefix}lms", headers=headers)
+
+    def _load_ytb_csv(self, lms_csv_path):
+        if not os.path.exists(lms_csv_path):
+            raise Exception(f"File not found: {lms_csv_path}")
+            
+        with open(lms_csv_path, mode='r', encoding='utf-8') as f_obj:
+            return list(csv.reader(f_obj))[1:]
+
+    def execute_automation(self, mode, lms_csv_path=None, task_prefix=""):
+        """
+        Core sequence: YouTube upload -> LMS sync with execution locking.
+        """
+        if not _EXECUTION_LOCK.acquire(blocking=False):
+            self.logger.error("Automation is already in progress. Task skipped.")
+            return False
+
+        try:
+            yt_res = []
+            
+            if mode in ["1", "2"]:
+                yt_res = self._upload_video(task_prefix)
+            
+            if mode == "3" and lms_csv_path:
+                yt_res = self._load_ytb_csv(lms_csv_path)
+                self.logger.info(f"Loaded {len(yt_res)} records from CSV.")
+
+            if mode in ["1", "3"]:
+                self._sync_lms(yt_res, task_prefix)
+            
+            self.logger.info("Automation Sequence Completed!")
+            return True
+        except Exception as e:
+            self.logger.error(f"Error: {e}")
+            return False
+        finally:
+            _EXECUTION_LOCK.release()

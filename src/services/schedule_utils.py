@@ -3,10 +3,12 @@ import os
 from datetime import datetime
 
 def load_schedule(path):
-    if os.path.exists(path):
-        with open(path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    return {}
+    if not os.path.exists(path):
+        return {}
+
+    with open(path, 'r', encoding='utf-8') as f:
+        return json.load(f)
+    
 
 def get_date_from_file_name(name):
     try:
@@ -25,9 +27,9 @@ def get_course_name_by_date(date, schedule):
             h, m = map(int, time_str.split(':'))
             lesson_time = h * 60 + m
             
-            # Range: [lesson_time - 5, lesson_time + 30]
             if (lesson_time - 5) <= video_time <= (lesson_time + 30):
                 return lesson_data
-        except: continue
+        except: 
+            continue
         
     return None

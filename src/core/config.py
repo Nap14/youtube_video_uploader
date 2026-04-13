@@ -1,5 +1,5 @@
-import json
 import os
+import json
 
 class Config:
     def __init__(self, config_file, logger):
@@ -7,14 +7,17 @@ class Config:
         self.logger = logger
         self.data = self._load()
 
+
     def _load(self):
-        if os.path.exists(self.config_file):
-            try:
-                with open(self.config_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-            except Exception as e:
-                self.logger.error(f"Config error: {e}")
-        return {}
+        if not os.path.exists(self.config_file):
+            return {}
+
+        try:
+            with open(self.config_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+
+        except Exception as e:
+            self.logger.error(f"Config error: {e}")
 
     def get_data(self): 
         return self.data
@@ -30,7 +33,10 @@ class Config:
         return self.data.get("ZOOM_DIR")
 
     def get_lms_token(self): 
-        return self.data.get("LMS_TOKEN")
+        token = self.data.get("LMS_TOKEN")
+        if not token:
+            raise ValueError("Missing LMS token")
+        return token
 
     def get_school_id(self): 
         return self.data.get("SCHOOL_ID", "")

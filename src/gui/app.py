@@ -10,21 +10,26 @@ from .planner import PlannerFrame
 from .tray_manager import TrayManager
 from ..core.scheduler import SchedulerService
 from ..services.automation_runner import start_automation_task
+from ..core.config import Config
 
 class GuiApp(ctk.CTk):
-    def __init__(self, config, schedule, paths):
+    def __init__(self, config: Config, schedule: dict, paths: dict):
         super().__init__()
         self.config, self.schedule, self.paths = config, schedule, paths
-        self.title("Zoom Video Automation")
-        self.geometry("1100x600")
-        self.minsize(900, 500)
-        ctk.set_appearance_mode(self.config.get_data().get("THEME", "Dark"))
-        self.grid_columnconfigure(1, weight=1); self.grid_rowconfigure(0, weight=1)
+        self.setup_window()
         self.setup_ui()
         self.scheduler = SchedulerService(self.config, self.trigger_automation)
         self.scheduler.start()
         self.tray = TrayManager(self, self.exit_app)
         self.protocol("WM_DELETE_WINDOW", lambda: self.withdraw())
+
+    def setup_window(self):
+        self.title("Zoom Video Automation")
+        self.geometry("1100x600")
+        self.minsize(900, 500)
+        ctk.set_appearance_mode(self.config.get_data().get("THEME", "Dark"))
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
 
     def setup_ui(self):
         self.sidebar = Sidebar(self, self.select_frame, width=200, corner_radius=0)
