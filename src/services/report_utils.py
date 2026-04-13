@@ -2,16 +2,19 @@ import csv
 import os
 from datetime import datetime
 
-def create_report(report_rows, reports_dir, prefix="report"):
+def create_report(report_rows, reports_dir, prefix="report", headers=None):
     if not os.path.exists(reports_dir):
         os.makedirs(reports_dir, exist_ok=True)
         
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     path = os.path.join(reports_dir, f"{prefix}_{ts}.csv")
     
+    if not headers:
+        headers = ["Date", "Course", "URL", "Status", "Details"]
+
     with open(path, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
-        writer.writerow(["Date", "Course", "URL", "Status", "Details"])
+        writer.writerow(headers)
         writer.writerows(report_rows)
     
     txt_path = os.path.join(reports_dir, f"{prefix}_{ts}.txt")

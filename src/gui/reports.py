@@ -19,11 +19,19 @@ class ReportsFrame(ctk.CTkFrame):
         ctk.CTkButton(btn_f, text="Refresh All", command=self.refresh_reports, width=120).pack(side="left")
         ctk.CTkButton(btn_f, text="Clear All History", fg_color="#e74c3c", command=self.clear_all, width=150).pack(side="left", padx=10)
         
-        ctk.CTkLabel(self, text="YouTube Reports", font=ctk.CTkFont(weight="bold")).grid(row=2, column=0, padx=30, pady=(10,0), sticky="w")
+        yt_h = ctk.CTkFrame(self, fg_color="transparent")
+        yt_h.grid(row=2, column=0, padx=30, pady=(10,0), sticky="ew")
+        ctk.CTkLabel(yt_h, text="YouTube Reports", font=ctk.CTkFont(weight="bold")).pack(side="left")
+        ctk.CTkButton(yt_h, text="Clear", width=50, height=20, fg_color="#e67e22", command=lambda: self.clear_partial("youtube")).pack(side="right")
+        
         self.yt_list = ctk.CTkScrollableFrame(self)
         self.yt_list.grid(row=3, column=0, padx=(30, 10), pady=10, sticky="nsew")
         
-        ctk.CTkLabel(self, text="LMS Reports", font=ctk.CTkFont(weight="bold")).grid(row=2, column=1, padx=30, pady=(10,0), sticky="w")
+        lms_h = ctk.CTkFrame(self, fg_color="transparent")
+        lms_h.grid(row=2, column=1, padx=30, pady=(10,0), sticky="ew")
+        ctk.CTkLabel(lms_h, text="LMS Reports", font=ctk.CTkFont(weight="bold")).pack(side="left")
+        ctk.CTkButton(lms_h, text="Clear", width=50, height=20, fg_color="#e67e22", command=lambda: self.clear_partial("lms")).pack(side="right")
+        
         self.lms_list = ctk.CTkScrollableFrame(self)
         self.lms_list.grid(row=3, column=1, padx=(10, 30), pady=10, sticky="nsew")
 
@@ -69,4 +77,12 @@ class ReportsFrame(ctk.CTkFrame):
         if messagebox.askyesno("Confirm", "Delete ALL reports?"):
             d = self.config.get_reports_dir()
             for f in os.listdir(d): os.remove(os.path.join(d, f))
+            self.refresh_reports()
+
+    def clear_partial(self, prefix):
+        from tkinter import messagebox
+        if messagebox.askyesno("Confirm", f"Delete all {prefix} reports?"):
+            d = self.config.get_reports_dir()
+            for f in os.listdir(d):
+                if prefix in f.lower(): os.remove(os.path.join(d, f))
             self.refresh_reports()
