@@ -1,7 +1,8 @@
 import os
 import csv
 import threading
-from ..core.engine import process_youtube, process_lms
+from ..core.engine import process_lms
+from ..core.youtube_engine import process_youtube
 from ..services.youtube.auth import Oauth2Service
 from ..services.report_utils import create_report
 
@@ -41,7 +42,8 @@ def execute_automation(config, schedule, paths, mode, logger, progress_cb, lms_c
             else:
                 lms_res = process_lms(yt_res, config, schedule, logger, progress_cb)
                 if lms_res:
-                    create_report(lms_res, config.get_reports_dir(), f"{task_prefix}lms")
+                    headers = ["Date", "Course", "Lesson Name", "Status", "Details"]
+                    create_report(lms_res, config.get_reports_dir(), f"{task_prefix}lms", headers=headers)
         
         logger.info("Automation Sequence Completed!")
         return True
