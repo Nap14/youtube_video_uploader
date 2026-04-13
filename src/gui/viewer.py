@@ -23,10 +23,15 @@ class ReportTableModal(ctk.CTkToplevel):
         self.load_data()
 
     def load_data(self):
+        if not self.file_path.lower().endswith(".csv"):
+            ctk.CTkLabel(self.container, text="Error: Unsupported file format. Only .csv is supported.").pack(pady=20)
+            return
         try:
             with open(self.file_path, mode='r', encoding='utf-8') as f:
                 self.data = list(csv.reader(f))
-            if not self.data: return
+            if not self.data or len(self.data[0]) < 2:
+                ctk.CTkLabel(self.container, text="Error: Invalid or empty report format.").pack(pady=20)
+                return
             
             cols = len(self.data[0])
             self.container.grid_columnconfigure(list(range(cols + 1)), weight=1)
@@ -34,9 +39,10 @@ class ReportTableModal(ctk.CTkToplevel):
             for r, row in enumerate(self.data):
                 for c, val in enumerate(row):
                     txt_color = ("black", "white")
-                    if "Success" in val: txt_color = "#27ae60"
-                    elif "Error" in val or "Failed" in val: txt_color = "#e74c3c"
-                    elif "Skipped" in val: txt_color = "#f39c12"
+                    val_lower = val.lower()
+                    if val_lower == "pass" or "success" in val: txt_color = "#27ae60"
+                    elif val_lower == "fail" or "error" in val or "failed" in val: txt_color = "#e74c3c"
+                    elif val_lower == "skipped": txt_color = "#f39c12"
 
                     lbl = ctk.CTkLabel(self.container, text=val, font=ctk.CTkFont(size=11, weight="bold" if r==0 else "normal"), 
                                        text_color=txt_color, fg_color=("gray85", "gray25") if r==0 else "transparent", 

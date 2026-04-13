@@ -18,10 +18,16 @@ def get_course_name_by_date(date, schedule):
     day = date.strftime('%A')
     day_lessons = schedule.get(day, {})
     
-    time_key = date.strftime('%H:00')
-    if time_key in day_lessons: return day_lessons[time_key]
+    video_time = date.hour * 60 + date.minute
     
-    time_key_30 = date.strftime('%H:30')
-    if time_key_30 in day_lessons: return day_lessons[time_key_30]
-    
+    for time_str, lesson_data in day_lessons.items():
+        try:
+            h, m = map(int, time_str.split(':'))
+            lesson_time = h * 60 + m
+            
+            # Range: [lesson_time - 5, lesson_time + 30]
+            if (lesson_time - 5) <= video_time <= (lesson_time + 30):
+                return lesson_data
+        except: continue
+        
     return None
