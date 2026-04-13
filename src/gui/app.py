@@ -54,8 +54,16 @@ class GuiApp(ctk.CTk):
             self.after(0, start_now)
 
     def select_frame(self, name):
+        # Check for unsaved changes when leaving settings
+        current = getattr(self, "_current_frame", None)
+        if current == "settings" and name != "settings" and self.frames["settings"].is_dirty():
+            from tkinter import messagebox
+            if messagebox.askyesno("Save Changes?", "You have unsaved settings. Save them now?"):
+                self.save_settings()
+
         for f in self.frames.values(): f.grid_forget()
         self.frames[name].grid(row=0, column=1, sticky="nsew")
+        self._current_frame = name
         self.sidebar.highlight_button(name)
         calls = {"schedule": "refresh", "reports": "refresh_reports", "planner": "refresh_history"}
         if name in calls: getattr(self.frames[name], calls[name])()
@@ -85,7 +93,7 @@ class GuiApp(ctk.CTk):
         self.config.get_data().update({"ZOOM_DIR": f.zoom_dir_entry.get(), "LMS_TOKEN": f.lms_token_entry.get(), 
                                       "SCHOOL_ID": f.school_id_entry.get()})
         self.config.save()
-        f.show_status()
+        f.show_status("Settings Saved!")
 
     def start_automation(self, task_prefix=""):
         start_automation_task(self, task_prefix)

@@ -15,13 +15,12 @@ class SettingsFrame(ctk.CTkFrame):
         ctk.CTkLabel(self, text="General Settings", font=ctk.CTkFont(size=24, weight="bold")).grid(row=0, column=0, padx=30, pady=(20, 10), sticky="w")
         
         ENTRY_WIDTH = 550
-        # Theme
+        
         self._add_label_with_help("Appearance Mode:", "Change the visual theme of the application.")
         self.theme_menu = ctk.CTkOptionMenu(self, values=["Light", "Dark", "System"], command=self.theme_cmd)
         self.theme_menu.grid(row=2, column=0, padx=30, pady=(0, 20), sticky="w")
         self.theme_menu.set(self.config.get_data().get("THEME", "Dark"))
 
-        # Zoom Dir
         self._add_label_with_help("Zoom Recordings Directory:", "The local folder where Zoom saves your recordings. Usually: Documents/Zoom")
         f1 = ctk.CTkFrame(self, fg_color="transparent")
         f1.grid(row=4, column=0, padx=30, pady=(0, 10), sticky="w")
@@ -30,7 +29,6 @@ class SettingsFrame(ctk.CTkFrame):
         self.zoom_dir_entry.insert(0, self.config.get_zoom_dir() or "")
         ctk.CTkButton(f1, text="Browse", width=80, command=self.browse_cmd).pack(side="left", padx=(10, 0))
         
-        # LMS Token
         self._add_label_with_help("LMS Bearer Token:", "Bearer token from SendPulse Settings -> API -> Educate, OR from browser Network tab while editing a lesson.")
         f2 = ctk.CTkFrame(self, fg_color="transparent")
         f2.grid(row=6, column=0, padx=30, pady=(0, 10), sticky="w")
@@ -41,13 +39,10 @@ class SettingsFrame(ctk.CTkFrame):
         self.show_token_var = ctk.BooleanVar(value=False)
         ctk.CTkCheckBox(f2, text="Show", variable=self.show_token_var, command=self.toggle_token, width=60).pack(side="left", padx=(10, 0))
 
-        # ID & Save
         self._add_label_with_help("School ID:", "Your SendPulse School Identification Number.")
         self.school_id_entry = ctk.CTkEntry(self, width=200)
         self.school_id_entry.grid(row=8, column=0, padx=30, pady=(0, 20), sticky="w")
         self.school_id_entry.insert(0, self.config.get_school_id() or "")
-
-        # Push the Save button to the bottom
         self.grid_rowconfigure(19, weight=1)
         sf = ctk.CTkFrame(self, fg_color="transparent")
         sf.grid(row=20, column=0, padx=30, pady=20, sticky="sw")
@@ -73,3 +68,9 @@ class SettingsFrame(ctk.CTkFrame):
 
     def toggle_token(self):
         self.lms_token_entry.configure(show="" if self.show_token_var.get() else "*")
+
+    def is_dirty(self):
+        d = self.config.get_data()
+        return (self.zoom_dir_entry.get() != (d.get("ZOOM_DIR") or "") or
+                self.lms_token_entry.get() != (d.get("LMS_TOKEN") or "") or
+                self.school_id_entry.get() != (d.get("SCHOOL_ID") or ""))
