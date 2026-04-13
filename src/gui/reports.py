@@ -1,7 +1,9 @@
-import customtkinter as ctk
 import os
+import customtkinter as ctk
+from tkinter import messagebox
 
 from .viewer import ReportTableModal
+from ..services.report_utils import list_reports
 
 class ReportsFrame(ctk.CTkFrame):
     def __init__(self, master, config, **kwargs):
@@ -40,14 +42,12 @@ class ReportsFrame(ctk.CTkFrame):
         for c in self.lms_list.winfo_children(): c.destroy()
         
         d = self.config.get_reports_dir()
-        if not os.path.exists(d): return
-        
-        files = os.listdir(d)
-        files.sort(key=lambda x: os.path.getmtime(os.path.join(d, x)), reverse=True)
+        files = list_reports(d)
         
         for f in files:
             target = self.yt_list if "youtube" in f.lower() else self.lms_list if "lms" in f.lower() else None
-            if target: self._add_report_row(target, f, os.path.join(d, f))
+            if target: 
+                self._add_report_row(target, f, os.path.join(d, f))
 
     def _add_report_row(self, container, filename, full_path):
         row = ctk.CTkFrame(container, fg_color=("gray90", "gray20"))
@@ -63,24 +63,20 @@ class ReportsFrame(ctk.CTkFrame):
         ctk.CTkButton(row, text="X", width=25, height=22, fg_color="#e74c3c", command=lambda p=full_path: self.delete_report(p)).pack(side="right", padx=5)
 
     def delete_report(self, path):
-        from tkinter import messagebox
         if messagebox.askyesno("Confirm", "Delete this report?"):
             os.remove(path)
-            # Remove the .txt version too if it exists
             if path.endswith(".csv"):
                 txt = path.replace(".csv", ".txt")
                 if os.path.exists(txt): os.remove(txt)
             self.refresh_reports()
 
     def clear_all(self):
-        from tkinter import messagebox
         if messagebox.askyesno("Confirm", "Delete ALL reports?"):
             d = self.config.get_reports_dir()
             for f in os.listdir(d): os.remove(os.path.join(d, f))
             self.refresh_reports()
 
     def clear_partial(self, prefix):
-        from tkinter import messagebox
         if messagebox.askyesno("Confirm", f"Delete all {prefix} reports?"):
             d = self.config.get_reports_dir()
             for f in os.listdir(d):

@@ -24,3 +24,15 @@ def create_report(report_rows, reports_dir, prefix="report", headers=None):
             f.write(f"Date: {row[0]}\nCourse: {row[1]}\nURL: {row[2]}\nStatus: {row[3]}\n{'-'*20}\n")
             
     return path
+
+def list_reports(reports_dir):
+    if not os.path.exists(reports_dir): return []
+    files = [f for f in os.listdir(reports_dir) if f.endswith((".csv", ".txt"))]
+    files.sort(key=lambda x: os.path.getmtime(os.path.join(reports_dir, x)), reverse=True)
+    return files
+
+def get_latest_report(reports_dir):
+    files = list_reports(reports_dir)
+    for f in files:
+        if f.endswith(".csv"): return os.path.join(reports_dir, f)
+    return None
