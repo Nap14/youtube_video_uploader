@@ -1,10 +1,9 @@
 class ConsoleLogger:
-    def info(self, m): 
+    def info(self, m: str): 
         print(f"[INFO] {m}")
 
-    def error(self, m): 
+    def error(self, m: str): 
         print(f"[ERROR] {m}")
 
-    def warning(self, m): 
+    def warning(self, m: str): 
         print(f"[WARN] {m}")
-

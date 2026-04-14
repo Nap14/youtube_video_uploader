@@ -1,23 +1,25 @@
-import os
 import json
+import os
+from typing import Any, Dict
+
+from src.core.logger import Logger
 
 class Config:
-    def __init__(self, config_file, logger):
+    def __init__(self, config_file: str, logger: Logger):
         self.config_file = config_file
         self.logger = logger
         self.data = self._load()
 
-
-    def _load(self):
+    def _load(self) -> Dict[str, Any]:
         if not os.path.exists(self.config_file):
             return {}
-
+            
         try:
             with open(self.config_file, 'r', encoding='utf-8') as f:
                 return json.load(f)
-
         except Exception as e:
             self.logger.error(f"Config error: {e}")
+            return {}
 
     def get_data(self): 
         return self.data
@@ -32,7 +34,7 @@ class Config:
     def get_zoom_dir(self): 
         return self.data.get("ZOOM_DIR")
 
-    def get_lms_token(self): 
+    def get_lms_token(self) -> str: 
         token = self.data.get("LMS_TOKEN")
         if not token:
             raise ValueError("Missing LMS token")
@@ -41,12 +43,14 @@ class Config:
     def get_school_id(self): 
         return self.data.get("SCHOOL_ID", "")
 
-    def get_reports_dir(self):
+    def get_reports_dir(self) -> str:
         d = self.data.get("REPORTS_DIR", "reports")
-        if not os.path.exists(d): os.makedirs(d, exist_ok=True)
+        if not os.path.exists(d): 
+            os.makedirs(d, exist_ok=True)
+            
         return d
 
-    def get_planner_config(self):
+    def get_planner_config(self) -> Dict[str, Any]:
         return self.data.get("PLANNER", {
             "enabled": False,
             "frequency": "daily", 
@@ -57,7 +61,6 @@ class Config:
             "require_confirmation": True
         })
 
-    def save_planner_config(self, config):
+    def save_planner_config(self, config: Dict[str, Any]):
         self.data["PLANNER"] = config
         self.save()
-

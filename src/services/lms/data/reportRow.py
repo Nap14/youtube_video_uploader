@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from typing import Optional, List
+from pydantic import BaseModel, Field
 
 from .status import SyncStatus
 
@@ -25,3 +27,29 @@ class SyncResult:
             self.status.value,
             self.message,
         ]
+
+
+class Link(BaseModel):
+    url: Optional[str] = None
+
+
+class Button(BaseModel):
+    label: Optional[str] = None
+    link: Optional[Link] = None
+
+
+class Data(BaseModel):
+    button: Optional[Button] = None
+
+
+class Element(BaseModel):
+    data: Optional[Data] = None
+
+
+class Wrapper(BaseModel):
+    element: Optional[Element] = None
+
+
+class ContentObject(BaseModel):
+    content: List[Wrapper] = Field(default_factory=list)
+

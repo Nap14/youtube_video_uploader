@@ -36,7 +36,6 @@ class Sidebar(ctk.CTkFrame):
             btn.grid(row=i+1, column=0, sticky="ew")
             self.buttons[name] = btn
 
-        # Settings button at the bottom (row 10 with row 5 weighted)
         settings_btn = self._create_btn("General Settings", "settings")
         settings_btn.grid(row=10, column=0, padx=0, pady=(0, 20), sticky="ew")
         self.buttons["settings"] = settings_btn

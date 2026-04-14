@@ -1,76 +1,118 @@
+import os
 import customtkinter as ctk
+from tkinter import filedialog
+from typing import Dict, Any
 
-class SettingsFrame(ctk.CTkFrame):
-    def __init__(self, master, config, paths, browse_cmd, save_cmd, theme_cmd, **kwargs):
-        super().__init__(master, **kwargs)
-        self.config = config
-        self.paths = paths
-        self.browse_cmd = browse_cmd
-        self.save_cmd = save_cmd
-        self.theme_cmd = theme_cmd
-        self.create_widgets()
+from src.core.context import AppContext
+from src.gui.base_frame import BaseFrame
 
-    def create_widgets(self):
+class SettingsFrame(BaseFrame):
+    def __init__(self, master, ctx: AppContext, **kwargs):
+        super().__init__(master, ctx, **kwargs)
+
+    def _create_widgets(self):
         self.grid_columnconfigure(0, weight=1)
-        ctk.CTkLabel(self, text="General Settings", font=ctk.CTkFont(size=24, weight="bold")).grid(row=0, column=0, padx=30, pady=(20, 10), sticky="w")
+        self.grid_rowconfigure(1, weight=1)
         
-        ENTRY_WIDTH = 550
+        ctk.CTkLabel(self, text="Application Settings", font=ctk.CTkFont(size=24, weight="bold")).grid(
+            row=0, column=0, padx=30, pady=(30, 20), sticky="w"
+        )
         
-        self._add_label_with_help("Appearance Mode:", "Change the visual theme of the application.")
-        self.theme_menu = ctk.CTkOptionMenu(self, values=["Light", "Dark", "System"], command=self.theme_cmd)
-        self.theme_menu.grid(row=2, column=0, padx=30, pady=(0, 20), sticky="w")
-        self.theme_menu.set(self.config.get_data().get("THEME", "Dark"))
-
-        self._add_label_with_help("Zoom Recordings Directory:", "The local folder where Zoom saves your recordings. Usually: Documents/Zoom")
-        f1 = ctk.CTkFrame(self, fg_color="transparent")
-        f1.grid(row=4, column=0, padx=30, pady=(0, 10), sticky="w")
-        self.zoom_dir_entry = ctk.CTkEntry(f1, width=ENTRY_WIDTH)
-        self.zoom_dir_entry.pack(side="left")
-        self.zoom_dir_entry.insert(0, self.config.get_zoom_dir() or "")
-        ctk.CTkButton(f1, text="Browse", width=80, command=self.browse_cmd).pack(side="left", padx=(10, 0))
+        self.content = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self.content.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
+        self.content.grid_columnconfigure(0, weight=1)
         
-        self._add_label_with_help("LMS Bearer Token:", "Bearer token from SendPulse Settings -> API -> Educate, OR from browser Network tab while editing a lesson.")
-        f2 = ctk.CTkFrame(self, fg_color="transparent")
-        f2.grid(row=6, column=0, padx=30, pady=(0, 10), sticky="w")
-        self.lms_token_entry = ctk.CTkEntry(f2, width=ENTRY_WIDTH, show="*")
-        self.lms_token_entry.pack(side="left")
-        self.lms_token_entry.insert(0, self.config.get_lms_token() or "")
+        self.entries: Dict[str, ctk.CTkEntry] = {}
+        self._init_settings_fields()
+        self._init_theme_selector()
         
-        self.show_token_var = ctk.BooleanVar(value=False)
-        ctk.CTkCheckBox(f2, text="Show", variable=self.show_token_var, command=self.toggle_token, width=60).pack(side="left", padx=(10, 0))
+        ctk.CTkButton(self, text="Save All Settings", command=self._save, width=200, height=40).grid(
+            row=2, column=0, pady=20
+        )
 
-        self._add_label_with_help("School ID:", "Your SendPulse School Identification Number.")
-        self.school_id_entry = ctk.CTkEntry(self, width=200)
-        self.school_id_entry.grid(row=8, column=0, padx=30, pady=(0, 20), sticky="w")
-        self.school_id_entry.insert(0, self.config.get_school_id() or "")
-        self.grid_rowconfigure(19, weight=1)
-        sf = ctk.CTkFrame(self, fg_color="transparent")
-        sf.grid(row=20, column=0, padx=30, pady=20, sticky="sw")
-        ctk.CTkButton(sf, text="Save Settings", command=self.save_cmd, width=150).pack(side="left")
-        self.status_label = ctk.CTkLabel(sf, text="", text_color="#2ecc71", font=ctk.CTkFont(size=12))
-        self.status_label.pack(side="left", padx=20)
+    def _init_settings_fields(self):
+        self._add_field("SCHOOL_ID", "LMS School ID:")
+        self._add_field("LMS_TOKEN", "LMS API Token:", is_password=True)
+        self._add_path_field("ZOOM_DIR", "Zoom Videos Directory:")
 
-    def show_status(self, text="Settings Saved!"):
-        self.status_label.configure(text=text)
-        self.after(3000, lambda: self.status_label.configure(text=""))
+    def _add_field(self, key: str, label: str, is_password: bool = False):
+        f = ctk.CTkFrame(self.content, fg_color="transparent")
+        f.pack(fill="x", padx=20, pady=8)
+        
+        ctk.CTkLabel(f, text=label, width=150, anchor="w").pack(side="left")
+        
+        ent = ctk.CTkEntry(f, width=400, show="*" if is_password else "")
+        ent.pack(side="left", padx=10)
+        ent.insert(0, self.ctx.config.get_data().get(key, ""))
+        self.entries[key] = ent
+        
+        if is_password:
+            self._add_toggle_btn(f, ent)
 
-    def _add_label_with_help(self, text, help_msg):
-        row = (self.grid_size()[1])
-        f = ctk.CTkFrame(self, fg_color="transparent")
-        f.grid(row=row, column=0, padx=30, pady=(10, 0), sticky="w")
-        ctk.CTkLabel(f, text=text).pack(side="left")
-        ctk.CTkButton(f, text="?", width=20, height=20, corner_radius=10, fg_color="gray", 
-                      command=lambda: self.show_help(text, help_msg)).pack(side="left", padx=5)
+    def _add_toggle_btn(self, parent, entry):
+        btn = ctk.CTkButton(
+            parent, text="👁", width=30, fg_color="transparent", hover_color=("gray70", "gray30"),
+            command=lambda: entry.configure(show="" if entry.cget("show") == "*" else "*")
+        )
+        btn.pack(side="left")
 
-    def show_help(self, title, msg):
-        from tkinter import messagebox
-        messagebox.showinfo(title, msg)
+    def _add_path_field(self, key: str, label: str):
+        f = ctk.CTkFrame(self.content, fg_color="transparent")
+        f.pack(fill="x", padx=20, pady=8)
+        
+        ctk.CTkLabel(f, text=label, width=150, anchor="w").pack(side="left")
+        
+        ent = ctk.CTkEntry(f, width=350)
+        ent.pack(side="left", padx=10)
+        ent.insert(0, self.ctx.config.get_data().get(key, ""))
+        self.entries[key] = ent
+        
+        ctk.CTkButton(
+            f, text="Browse", width=40, command=lambda k=key, e=ent: self._browse(k, e)
+        ).pack(side="left")
 
-    def toggle_token(self):
-        self.lms_token_entry.configure(show="" if self.show_token_var.get() else "*")
+    def _init_theme_selector(self):
+        f = ctk.CTkFrame(self.content, fg_color="transparent")
+        f.pack(fill="x", padx=20, pady=15)
+        
+        ctk.CTkLabel(f, text="Interface Theme:", width=150, anchor="w").pack(side="left")
+        
+        self.theme_menu = ctk.CTkOptionMenu(
+            f, values=["System", "Light", "Dark"], 
+            command=self._change_theme
+        )
+        self.theme_menu.pack(side="left", padx=10)
+        self.theme_menu.set(self.ctx.config.get_data().get("THEME", "Dark"))
 
-    def is_dirty(self):
-        d = self.config.get_data()
-        return (self.zoom_dir_entry.get() != (d.get("ZOOM_DIR") or "") or
-                self.lms_token_entry.get() != (d.get("LMS_TOKEN") or "") or
-                self.school_id_entry.get() != (d.get("SCHOOL_ID") or ""))
+    def _browse(self, key, ent):
+        d = filedialog.askdirectory()
+        if d:
+            ent.delete(0, "end")
+            ent.insert(0, os.path.normpath(d))
+
+    def _change_theme(self, new_theme: str):
+        ctk.set_appearance_mode(new_theme)
+
+    def _save(self):
+        data = self.ctx.config.get_data()
+        for key, ent in self.entries.items():
+            data[key] = ent.get().strip()
+        data["THEME"] = self.theme_menu.get()
+        
+        self.ctx.config.save()
+        self._show_feedback()
+
+    def _show_feedback(self):
+        btn = self.grid_slaves(row=2, column=0)[0]
+        orig_text = btn.cget("text")
+        btn.configure(text="Saved Success!", fg_color="#27ae60")
+        self.after(2000, lambda: btn.configure(text=orig_text, fg_color=ctk.ThemeManager.theme["CTkButton"]["fg_color"]))
+
+    def is_dirty(self) -> bool:
+        data = self.ctx.config.get_data()
+        if data.get("THEME") != self.theme_menu.get():
+            return True
+        for key, ent in self.entries.items():
+            if data.get(key) != ent.get().strip():
+                return True
+        return False
