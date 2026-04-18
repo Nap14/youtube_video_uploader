@@ -24,10 +24,10 @@ class GuiLogger:
 
     def _log(self, m: str):
         def update():
-            self.widget.configure("normal")
+            self.widget.configure(state="normal")
             self.widget.insert("end", f"{m}\n")
             self.widget.see("end")
-            self.widget.configure("disabled")
+            self.widget.configure(state="disabled")
         self.widget.after(0, update)
 
 def start_automation_task(app: Any, task_prefix: str = ""):
@@ -56,6 +56,8 @@ def _execute_with_ui(app, dash, mode, lms_csv, task_prefix):
     try:
         def cb(m: str, p: tuple):
             app.after(0, lambda: dash.progress_bar.set(p[0]/p[1]))
+            if m:
+                app.ctx.logger.info(m)
             
         automation = AutomationCore(app.ctx, cb, error_cb=app.show_error)
         automation.execute_automation(mode, lms_csv_path=lms_csv, task_prefix=task_prefix)

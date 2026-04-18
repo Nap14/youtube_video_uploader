@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from typing import Optional, List
-from pydantic import BaseModel, Field
+from typing import Optional, List, Any, Union
+from pydantic import BaseModel, Field, ConfigDict
 
 from .status import SyncStatus
 
@@ -30,26 +30,32 @@ class SyncResult:
 
 
 class Link(BaseModel):
+    model_config = ConfigDict(extra='allow')
     url: Optional[str] = None
 
 
 class Button(BaseModel):
+    model_config = ConfigDict(extra='allow')
     label: Optional[str] = None
     link: Optional[Link] = None
 
 
 class Data(BaseModel):
+    model_config = ConfigDict(extra='allow')
     button: Optional[Button] = None
 
 
 class Element(BaseModel):
-    data: Optional[Data] = None
+    model_config = ConfigDict(extra='allow')
+    data: Union[Data, List[Any], None] = None
 
 
 class Wrapper(BaseModel):
+    model_config = ConfigDict(extra='allow')
     element: Optional[Element] = None
 
 
 class ContentObject(BaseModel):
+    model_config = ConfigDict(extra='allow')
     content: List[Wrapper] = Field(default_factory=list)
 

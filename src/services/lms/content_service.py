@@ -21,7 +21,7 @@ class ContentService:
     def _get_button(self, wrapper: Wrapper) -> Optional[Button]:
         if not wrapper.element:
             return None
-        if not wrapper.element.data:
+        if not isinstance(wrapper.element.data, Data):
             return None
         return wrapper.element.data.button
 

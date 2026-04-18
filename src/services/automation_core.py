@@ -83,13 +83,16 @@ class AutomationCore:
         yt_res: List[List[str]] = []
         
         if mode in ["1", "2"]:
+            self.ctx.logger.info("Starting YouTube Upload Phase...")
             yt_res = self._upload_video(task_prefix)
+            self.ctx.logger.info("YouTube Upload Phase Completed.")
             
         if mode == "3" and lms_csv_path:
             yt_res = self._load_ytb_csv(lms_csv_path)
             self.ctx.logger.info(f"Loaded {len(yt_res)} records from CSV.")
             
         if mode in ["1", "3"]:
+            self.ctx.logger.info("Starting LMS Synchronization Phase...")
             self._sync_lms(yt_res, task_prefix)
             
         self.ctx.logger.info("Automation Sequence Completed!")

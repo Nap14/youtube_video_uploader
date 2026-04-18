@@ -14,6 +14,10 @@ class LmsProcessor(BaseProcessor):
         self.lms = lms
 
     def process(self, raw_rows: List[List[str]], progress_cb: Optional[Callable[[str, tuple], None]] = None) -> List[List[str]]:
+        self.ctx.logger.info(f"Starting LMS Sync for {len(raw_rows)} items...")
+        if progress_cb:
+            progress_cb(f"LMS Syncing...", (0, len(raw_rows)))
+
         results: List[SyncResult] = []
         for i, raw in enumerate(raw_rows):
             res = self._process_single_raw(raw, i, len(raw_rows), progress_cb)
@@ -25,6 +29,9 @@ class LmsProcessor(BaseProcessor):
                 
             results.append(res)
             
+        if progress_cb:
+            progress_cb("LMS Sync Completed!", (1, 1))
+
         return [r.to_list() for r in results]
 
     def _process_single_raw(self, raw, i, total, progress_cb):
@@ -32,10 +39,7 @@ class LmsProcessor(BaseProcessor):
         if isinstance(row, SyncResult):
             return row
             
-        if progress_cb:
-            progress_cb(f"LMS Sync: {row.name}", (i + 1, total))
-            
-        return self._process_row(row)
+        return self._process_row(row, progress_cb)
 
     def _skip_remaining(self, raw_rows, current_idx) -> List[SyncResult]:
         skipped = []
@@ -48,7 +52,7 @@ class LmsProcessor(BaseProcessor):
             return SyncResult("", f"Row {i}", "", SyncStatus.SKIPPED, "invalid row")
         return ReportRow(r[0], r[1], r[2], r[3] if len(r) > 3 else "")
 
-    def _process_row(self, row: ReportRow) -> Union[SyncResult, str]:
+    def _process_row(self, row: ReportRow, progress_cb: Optional[Callable] = None) -> Union[SyncResult, str]:
         try:
             dt = datetime.strptime(row.date_str, "%d.%m.%Y %H:%M")
         except:
@@ -56,17 +60,24 @@ class LmsProcessor(BaseProcessor):
             
         meta = get_course_name_by_date(dt, self.ctx.schedule)
         if not meta or isinstance(meta, str) or not meta.get("lms_course_id"):
+            self.ctx.logger.warning(f"No LMS metadata for course: {row.name}")
             return SyncResult(row.date_str, row.name, "", SyncStatus.SKIPPED, "no lms meta")
             
-        return self._sync(row, dt, meta)
+        self.ctx.logger.info(f"Syncing to LMS Course: {row.name} (ID: {meta['lms_course_id']})")
 
-    def _sync(self, row: ReportRow, dt: datetime, meta: Dict[str, Any]) -> Union[SyncResult, str]:
+        return self._sync(row, dt, meta, progress_cb)
+
+    def _sync(self, row: ReportRow, dt: datetime, meta: Dict[str, Any], progress_cb: Optional[Callable] = None) -> Union[SyncResult, str]:
         try:
             ok, name, msg = self.lms.sync_video(
                 self.ctx.config.get_school_id(), meta["lms_course_id"], dt, row.url
             )
             status = SyncStatus.PASS if ok else SyncStatus.FAIL
             details = "updated" if ok else msg
+            
+            res_str = "SUCCESS" if ok else f"FAILED: {msg}"
+            self.ctx.logger.info(f"LMS Sync {res_str} for {row.name}")
+
             return SyncResult(row.date_str, row.name, name or "", status, details)
         except RuntimeError as e:
             if "LMS_AUTH_ERROR" in str(e):
