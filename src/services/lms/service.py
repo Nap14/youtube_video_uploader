@@ -49,6 +49,7 @@ class LmsService:
         url = f"{self.BASE_URL}/courses/{school_id}/{course_id}/lesson/{lesson_id}"
         body = {
             **lesson,
+            **lesson_obj,
             "content": updated["content"],
             "courseId": int(course_id),
         }
