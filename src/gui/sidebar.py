@@ -1,5 +1,6 @@
 import customtkinter as ctk
 import os
+import sys
 from PIL import Image
 
 class Sidebar(ctk.CTkFrame):
@@ -12,8 +13,22 @@ class Sidebar(ctk.CTkFrame):
 
     def load_icons(self):
         def _get_icon(name):
-            p = os.path.join("assets", "icons", f"{name}.png")
-            return ctk.CTkImage(light_image=Image.open(p), dark_image=Image.open(p), size=(20, 20))
+            search_dirs = [
+                getattr(sys, '_MEIPASS', ''),
+                os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")),
+                os.getcwd()
+            ]
+            for b in search_dirs:
+                if not b:
+                    continue
+                p = os.path.join(b, "assets", "icons", f"{name}.png")
+                if os.path.exists(p):
+                    try:
+                        img = Image.open(p)
+                        return ctk.CTkImage(light_image=img, dark_image=img, size=(20, 20))
+                    except Exception:
+                        pass
+            return None
         
         self.icons = {
             "dashboard": _get_icon("dashboard"),
@@ -45,7 +60,8 @@ class Sidebar(ctk.CTkFrame):
                             fg_color="transparent", text_color=("gray10", "gray90"), 
                             hover_color=("gray70", "gray30"), anchor="w",
                             command=lambda n=name: self.switch_cmd(n))
-        if name in self.icons: btn.configure(image=self.icons[name])
+        if name in self.icons and self.icons[name] is not None:
+            btn.configure(image=self.icons[name])
         return btn
 
     def highlight_button(self, name):

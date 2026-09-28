@@ -4,11 +4,37 @@ from typing import Any, Dict
 
 from src.core.logger import Logger
 
+_DEFAULT_CONFIG = {
+    "ZOOM_DIR": "",
+    "LMS_TOKEN": "",
+    "SCHOOL_ID": "",
+    "REPORTS_DIR": "reports"
+}
+
 class Config:
-    def __init__(self, config_file: str, logger: Logger):
+    def __init__(self, config_file: str, logger: Logger = None):
         self.config_file = config_file
+        self.base_dir = os.path.dirname(os.path.dirname(os.path.abspath(config_file)))
         self.logger = logger
+        self._ensure_defaults()
         self.data = self._load()
+
+    def _ensure_defaults(self):
+        """Create config.json with safe defaults if it doesn't exist."""
+        if os.path.exists(self.config_file):
+            return
+        try:
+            os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(_DEFAULT_CONFIG, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            self._log_error(f"Cannot create default config: {e}")
+
+    def _log_error(self, msg: str):
+        if hasattr(self.logger, 'error') and callable(self.logger.error):
+            self.logger.error(msg)
+        else:
+            print(f"[ERROR] {msg}")
 
     def _load(self) -> Dict[str, Any]:
         if not os.path.exists(self.config_file):
@@ -18,7 +44,7 @@ class Config:
             with open(self.config_file, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except Exception as e:
-            self.logger.error(f"Config error: {e}")
+            self._log_error(f"Config error: {e}")
             return {}
 
     def get_data(self): 
@@ -29,7 +55,7 @@ class Config:
             with open(self.config_file, 'w', encoding='utf-8') as f:
                 json.dump(self.data, f, ensure_ascii=False, indent=4)
         except Exception as e:
-            self.logger.error(f"Save error: {e}")
+            self._log_error(f"Save error: {e}")
 
     def get_zoom_dir(self): 
         return self.data.get("ZOOM_DIR")
@@ -45,9 +71,13 @@ class Config:
 
     def get_reports_dir(self) -> str:
         d = self.data.get("REPORTS_DIR", "reports")
+        if not os.path.isabs(d) and self.base_dir:
+            d = os.path.join(self.base_dir, d)
         if not os.path.exists(d): 
-            os.makedirs(d, exist_ok=True)
-            
+            try:
+                os.makedirs(d, exist_ok=True)
+            except Exception as e:
+                self._log_error(f"Cannot create reports dir {d}: {e}")
         return d
 
     def get_planner_config(self) -> Dict[str, Any]:

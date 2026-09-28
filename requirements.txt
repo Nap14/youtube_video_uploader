@@ -8,4 +8,5 @@ darkdetect
 Pillow
 requests
 pystray
+pydantic
 pyinstaller

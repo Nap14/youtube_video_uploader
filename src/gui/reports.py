@@ -1,4 +1,6 @@
 import os
+import sys
+import subprocess
 import customtkinter as ctk
 from tkinter import messagebox
 
@@ -85,11 +87,22 @@ class ReportsFrame(BaseFrame):
             cb = lambda p=full_path: ReportTableModal(self.master, p)
             ctk.CTkButton(row, text="View", width=50, height=22, command=cb).pack(side="left", padx=2)
         else:
-            cb = lambda p=full_path: os.startfile(p)
+            cb = lambda p=full_path: self._open_file(p)
             ctk.CTkButton(row, text="Open", width=50, height=22, fg_color="gray", command=cb).pack(side="left", padx=2)
             
         del_cb = lambda p=full_path: self.delete_report(p)
         ctk.CTkButton(row, text="X", width=25, height=22, fg_color="#e74c3c", command=del_cb).pack(side="right", padx=5)
+
+    def _open_file(self, path: str):
+        try:
+            if hasattr(os, 'startfile'):
+                os.startfile(path)
+            elif sys.platform == 'darwin':
+                subprocess.run(['open', path], check=False)
+            else:
+                subprocess.run(['xdg-open', path], check=False)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to open file: {e}")
 
     def delete_report(self, path):
         if messagebox.askyesno("Confirm", "Delete this report?"):

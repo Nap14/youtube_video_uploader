@@ -1,5 +1,5 @@
+import sys
 import threading
-import pystray
 from PIL import Image, ImageDraw
 
 class TrayManager:
@@ -7,9 +7,28 @@ class TrayManager:
         self.app = app
         self.exit_cmd = exit_cmd
         self.icon = None
-        self.setup_tray()
+
+        # On macOS, pystray runs Cocoa NSApplication on a background thread,
+        # which triggers an immediate OS SIGTRAP/BPT trap abort because AppKit
+        # strictly forbids NSApplication on secondary threads (and Tkinter owns the main thread).
+        if sys.platform == "darwin":
+            return
+
+        try:
+            self.setup_tray()
+        except Exception as e:
+            print(f"[WARN] Tray initialization failed: {e}")
+            self.icon = None
+
+    def is_active(self) -> bool:
+        return self.icon is not None
 
     def setup_tray(self):
+        try:
+            import pystray
+        except ImportError:
+            return
+
         icon_img = Image.new('RGB', (64, 64), color=(31, 119, 180))
         d = ImageDraw.Draw(icon_img)
         d.rectangle([16, 16, 48, 48], fill="white")
@@ -23,8 +42,16 @@ class TrayManager:
         self.app.after(0, self.app.deiconify)
 
     def exit_app(self):
-        self.icon.stop()
+        if self.icon:
+            try:
+                self.icon.stop()
+            except Exception:
+                pass
         self.exit_cmd()
 
     def stop(self):
-        if self.icon: self.icon.stop()
+        if self.icon:
+            try:
+                self.icon.stop()
+            except Exception:
+                pass

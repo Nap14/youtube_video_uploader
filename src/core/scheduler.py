@@ -34,11 +34,14 @@ class SchedulerService:
 
     def _trigger_safely(self):
         try:
-            self.trigger_cb()
+            mode = str(self.config.get("mode", "1"))
+            self.trigger_cb(mode)
         except Exception as e:
             self.logger.error(f"Scheduler execution error: {e}")
 
     def _should_run(self) -> bool:
+        if not self.config.get("enabled", False):
+            return False
         freq = str(self.config.get("frequency"))
         handlers = {
             "hourly": self._should_run_hourly,

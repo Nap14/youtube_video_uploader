@@ -18,6 +18,7 @@ class LmsService:
             "Authorization": f"Bearer {token}",
             "Accept": "application/json",
             "Content-Type": "application/json",
+            "Accept-Encoding": "identity",
         }
 
     def sync_video(

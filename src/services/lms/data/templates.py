@@ -1,6 +1,6 @@
 import uuid
 
-def get_video_button_template(video_url: str) -> dict:
+def get_video_button_template(video_url: str, label: str = "Відео") -> dict:
     """Генерує словник зі структурою кнопки відео для SendPulse LMS."""
     return {
         "id": str(uuid.uuid4()),
@@ -23,7 +23,7 @@ def get_video_button_template(video_url: str) -> dict:
                         "selectedTariffs": []
                     },
                     "size": "M",
-                    "label": "Відео",
+                    "label": label,
                     "styleType": "custom",
                     "widthType": "full",
                     "buttonBase": {

@@ -1,6 +1,7 @@
+import queue
 import customtkinter as ctk
 from tkinter import messagebox
-from typing import Dict, Any
+from typing import Dict, Any, Callable
 
 from src.core.context import AppContext
 from src.core.scheduler import SchedulerService
@@ -18,18 +19,23 @@ class GuiApp(ctk.CTk):
     def __init__(self, ctx: AppContext):
         super().__init__()
         self.ctx = ctx
+        self._ui_queue: queue.Queue = queue.Queue()
+        self._poll_ui_queue()
         
         UIService.set_handler(self)
         self._setup_window()
         self._setup_ui()
         
-        self.ctx.logger = GuiLogger(self.frames["dashboard"].log_text)
+        self.ctx.logger = GuiLogger(self.frames["dashboard"].log_text, post_fn=self.post_to_ui)
         
         self.scheduler = SchedulerService(self.ctx.config.get_planner_config(), self.trigger_automation, self.ctx.logger)
         self.scheduler.start()
         
         self.tray = TrayManager(self, self.exit_app)
-        self.protocol("WM_DELETE_WINDOW", self.withdraw)
+        if self.tray.is_active():
+            self.protocol("WM_DELETE_WINDOW", self.withdraw)
+        else:
+            self.protocol("WM_DELETE_WINDOW", self.exit_app)
 
     def _setup_window(self):
         self.title("Zoom Video Automation")
@@ -65,11 +71,28 @@ class GuiApp(ctk.CTk):
             "planner": PlannerFrame(self, self.ctx, fg_color="transparent")
         }
 
+    def post_to_ui(self, func: Callable, *args: Any):
+        """Thread-safe mechanism to schedule UI operations on the Tk main thread."""
+        self._ui_queue.put((func, args))
+
+    def _poll_ui_queue(self):
+        try:
+            while True:
+                func, args = self._ui_queue.get_nowait()
+                try:
+                    func(*args)
+                except Exception as e:
+                    print(f"[UI Queue Error] {e}")
+        except queue.Empty:
+            pass
+        finally:
+            self.after(25, self._poll_ui_queue)
+
     def show_error(self, title, message):
-        self.after(0, lambda: messagebox.showerror(title, message))
+        self.post_to_ui(lambda: messagebox.showerror(title, message))
 
     def show_info(self, title, message):
-        self.after(0, lambda: messagebox.showinfo(title, message))
+        self.post_to_ui(lambda: messagebox.showinfo(title, message))
 
     def trigger_automation(self, mode: str):
         p_cfg = self.ctx.config.get_planner_config()
@@ -79,9 +102,9 @@ class GuiApp(ctk.CTk):
             self.start_automation(task_prefix="auto_")
             
         if p_cfg.get("require_confirmation"):
-            self.after(0, lambda: messagebox.askyesno("Planner", f"Start Mode {mode}?") and start())
+            self.post_to_ui(lambda: messagebox.askyesno("Planner", f"Start Mode {mode}?") and start())
         else:
-            self.after(0, start)
+            self.post_to_ui(start)
 
     def select_frame(self, name: str):
         if name not in self.frames:
@@ -98,6 +121,19 @@ class GuiApp(ctk.CTk):
         start_automation_task(self, task_prefix)
 
     def exit_app(self): 
-        self.scheduler.stop()
-        self.tray.stop()
-        self.quit()
+        try:
+            self.scheduler.stop()
+        except Exception:
+            pass
+        try:
+            self.tray.stop()
+        except Exception:
+            pass
+        try:
+            self.quit()
+        except Exception:
+            pass
+        try:
+            self.destroy()
+        except Exception:
+            pass
