@@ -1,12 +1,6 @@
-# === Secrets (NEVER commit) ===
-configs/client_secret.json
-configs/token.json
+# === User configs & secrets (NEVER commit) ===
+configs/
 client_secret*.json
-
-# === User data ===
-configs/config.json
-configs/schedule.json
-configs/names.json
 thumbnails/
 reports/
 

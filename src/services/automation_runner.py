@@ -1,30 +1,47 @@
+import queue
 import threading
-from typing import Any, Callable, Optional, Protocol
+from typing import Any, Callable, Optional
 
+from src.core.context import AppContext
+from src.core.logger import Logger
 from src.services.automation_core import AutomationCore
 
-class TextWidget(Protocol):
-    def configure(self, state: str) -> None: ...
-    def insert(self, index: str, text: str) -> None: ...
-    def see(self, index: str) -> None: ...
+class QueueLogger:
+    """Thread-safe logger that sends text messages to the UI queue without referencing any Tk widgets."""
+    def __init__(self, q: queue.Queue):
+        self.q = q
 
-class GuiLogger:
-    def __init__(self, widget: TextWidget, post_fn: Optional[Callable[[Callable], None]] = None):
-        self.widget = widget
-        self.post_fn = post_fn
+    def info(self, m: str) -> None:
+        print(f"INFO: {m}")
+        self.q.put(("log", f"INFO: {m}"))
 
-    def info(self, m: str): 
-        self._log(f"INFO: {m}")
-        
-    def error(self, m: str): 
-        self._log(f"ERROR: {m}")
-        
-    def warning(self, m: str): 
-        self._log(f"WARN: {m}")
+    def error(self, m: str) -> None:
+        print(f"ERROR: {m}")
+        self.q.put(("log", f"ERROR: {m}"))
+
+    def warning(self, m: str) -> None:
+        print(f"WARN: {m}")
+        self.q.put(("log", f"WARN: {m}"))
+
+class GuiLogger(QueueLogger):
+    """Backwards-compatible wrapper around QueueLogger."""
+    def __init__(self, widget: Any = None, post_fn: Optional[Callable] = None, q: Optional[queue.Queue] = None):
+        if q is not None:
+            super().__init__(q)
+        else:
+            self.widget = widget
+            self.post_fn = post_fn
+            self.q = None
 
     def _log(self, m: str):
         print(m)
-        def update():
+        if self.q is not None:
+            self.q.put(("log", m))
+        elif self.post_fn is not None:
+            self.post_fn(lambda: self._direct_insert(m))
+
+    def _direct_insert(self, m: str):
+        if self.widget:
             try:
                 self.widget.configure(state="normal")
                 self.widget.insert("end", f"{m}\n")
@@ -33,12 +50,6 @@ class GuiLogger:
             except Exception:
                 pass
 
-        if self.post_fn:
-            self.post_fn(update)
-        elif hasattr(self.widget, "after"):
-            self.widget.after(0, update)
-        else:
-            update()
 
 def start_automation_task(app: Any, task_prefix: str = ""):
     dash = app.frames["dashboard"]
@@ -61,28 +72,36 @@ def start_automation_task(app: Any, task_prefix: str = ""):
     dash.progress_bar.set(0)
     app.ctx.logger.info(f"Starting automation task (Mode {mode})...")
 
+    ui_queue: queue.Queue = app._ui_queue
+    ctx: AppContext = app.ctx
+
     def run():
-        _execute_with_ui(app, dash, mode, lms_csv, task_prefix)
+        _execute_in_background(ctx, ui_queue, mode, lms_csv, task_prefix)
 
     threading.Thread(target=run, daemon=True).start()
 
-def _execute_with_ui(app, dash, mode, lms_csv, task_prefix):
-    dispatch = getattr(app, "post_to_ui", lambda fn: app.after(0, fn))
+
+def _execute_in_background(ctx: AppContext, ui_queue: queue.Queue, mode: str, lms_csv: Optional[str], task_prefix: str):
+    """Executes automation in a background thread completely decoupled from Tkinter.
+    
+    NO Tkinter widget references, closures capturing widgets, or GUI objects exist in this thread.
+    All communication with UI happens exclusively via queue messages with primitive values.
+    """
     try:
         def cb(m: str, p: tuple):
             if p and len(p) >= 2 and p[1] > 0:
                 val = max(0.0, min(1.0, float(p[0]) / float(p[1])))
-                dispatch(lambda: dash.progress_bar.set(val))
+                ui_queue.put(("progress", val))
             if m:
-                app.ctx.logger.info(m)
-            
-        automation = AutomationCore(app.ctx, cb, error_cb=app.show_error)
+                ctx.logger.info(m)
+
+        def on_error(title: str, msg: str):
+            ui_queue.put(("error", (title, msg)))
+
+        automation = AutomationCore(ctx, cb, error_cb=on_error)
         automation.execute_automation(mode, lms_csv_path=lms_csv, task_prefix=task_prefix)
-        
-        dispatch(dash.refresh)
-        if task_prefix == "auto_":
-            dispatch(app.frames["planner"].refresh)
+
     except Exception as e:
-        app.ctx.logger.error(f"Fatal Error: {e}")
+        ctx.logger.error(f"Fatal Error: {e}")
     finally:
-        dispatch(lambda: dash.start_btn.configure(state="normal"))
+        ui_queue.put(("done", task_prefix))
