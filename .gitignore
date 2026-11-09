@@ -1,32 +1,29 @@
-# Secrets
-configs/client_secret.json
-configs/token.json
-configs/schedule.json
-configs/config.json
-configs/names.json
+# === User configs & secrets (NEVER commit) ===
+configs/
+client_secret*.json
+thumbnails/
+reports/
 
-# Virtual Environment
+# === Build artifacts & binaries ===
+build/
+dist/
+*.exe
+*.spec
+ZoomAutomation_CLI
+*.app
+
+# === Python ===
 venv/
 .env
-
-# Python caching
 __pycache__/
 *.pyc
 
-# Local Data and Logs
-thumbnails/
-reports/
+# === Logs & temp ===
+*.log
 *.txt
 !requirements.txt
-*.log
 
-# IDE files
+# === IDE & OS ===
 .vscode/
 .idea/
-
-
-# Build artifacts
-build/
-dist/
-*.spec
-build.ps1
+.DS_Store
