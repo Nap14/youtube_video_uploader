@@ -1,70 +1,75 @@
-# Zoom Video Automation 🚀
+# Zoom Video Automation 🚀 (Версія для macOS)
 
-Інструмент для автоматизації повного циклу обробки записів Zoom: пошук, завантаження на YouTube, організація плейлистів та прив'язка до курсів SendPulse LMS.
+Автоматизація повного циклу обробки записів Zoom на **macOS**: пошук записів, пакетне завантаження на YouTube, організація плейлистів та автоматична прив'язка до уроків SendPulse LMS.
 
-## Можливості
+---
 
-- 📂 **Автопошук**: виявлення нових `.mp4` записів у робочій папці Zoom.
-- 📅 **Розумний розклад**: зіставлення дати й часу запису з курсом, плейлистом і обкладинкою.
-- 📺 **YouTube API**: завантаження відео з доступом «Unlisted» та додавання до плейлиста курсу.
-- 🎓 **SendPulse LMS**: синхронізація та автоматичне прикріплення посилань на відео до уроків.
-- ⏰ **Фоновий режим**: вбудований планувальник завдань та робота у системному треї (GUI).
-- 🗑️ **Безпека й звіти**: автоматичне перенесення оброблених папок у Кошик і створення звітів (TXT/CSV).
+## 💻 Системні вимоги для macOS
 
-## Швидкий старт
+1. **macOS**: 11.0 (Big Sur) або новіша.
+2. **Python**: 3.10 - 3.13.
+   > **Важливо для macOS (Homebrew Python):** Якщо ви використовуєте Python, встановлений через Homebrew, переконайтеся, що встановлено Tkinter:
+   > ```bash
+   > brew install python-tk@3.12   # або ваша версія python
+   > ```
+3. **Права доступу macOS (Security & Privacy)**:
+   - Додатку потрібен доступ до папки з записами Zoom (зазвичай `~/Documents/Zoom`). При першому запуску macOS може запитати дозвіл на доступ до файлів папки «Документи» — натисніть **«Дозволити»**.
 
-### 1. YouTube API (`configs/client_secret.json`)
-1. У [Google Cloud Console](https://console.cloud.google.com/) створіть проєкт та увімкніть **YouTube Data API v3**.
-2. Створіть **OAuth client ID** (тип «Desktop app»), завантажте JSON-файл і збережіть як `configs/client_secret.json`.
-3. При першому запуску відкриється браузер для одноразової авторизації через Google.
+---
 
-### 2. Розклад курсів (`configs/schedule.json`)
-Зіставте день тижня (англійською) і час початку уроку з параметрами курсу (обкладинки з `thumbnails/`):
-```json
-{
-  "Monday": {
-    "19:00": {
-      "name": "Unity Pro",
-      "thumbnail": "unity.jpg",
-      "lms_course_id": "35014"
-    }
-  }
-}
+## 🚀 Швидкий запуск
+
+### 1. Підготовка конфігурацій (папка `configs/`)
+* **`configs/client_secret.json`**: Завантажте з [Google Cloud Console](https://console.cloud.google.com/) (OAuth 2.0 Client ID, Desktop App).
+* **`configs/config.json`**: Вкажіть шлях до папки Zoom (наприклад, `/Users/ім'я/Documents/Zoom`), `LMS_TOKEN` та `SCHOOL_ID`.
+* **`configs/schedule.json`**: Налаштуйте розклад уроків (день тижня англійською та час).
+
+### 2. Запуск через скрипт `run.sh`
+У Терміналі перейдіть до папки проєкту та виконайте:
+```bash
+chmod +x run.sh
+./run.sh
+```
+*Скрипт автоматично створить віртуальне оточення `venv` під macOS, встановить усі залежності з `requirements.txt` і запустить графічний інтерфейс.*
+
+### Запуск CLI версії (Термінал):
+```bash
+source venv/bin/activate
+python3 cli.py
 ```
 
-### 3. Токен LMS (`configs/config.json`)
-Для оновлення уроків на платформі вкажіть Bearer-токен (кабінет SendPulse → DevTools `F12` → вкладка Network → заголовок `Authorization: Bearer <токен>` будь-якого API-запиту):
-```json
-{
-  "LMS_TOKEN": "ВАШ_BEARER_ТОКЕН",
-  "SCHOOL_ID": "18828",
-  "REPORTS_DIR": "reports"
-}
+---
+
+## 🛠 Збірка в окремий macOS додаток (.app)
+
+Для створення автономного бандлу додатка:
+```bash
+chmod +x build_mac.sh
+./build_mac.sh
 ```
+Після завершення у папці `dist/` будуть створені:
+* **`dist/ZoomAutomation_GUI.app`** — повноцінний додаток для macOS.
+* **`dist/ZoomAutomation_CLI`** — бінарник для термінала.
 
-## Запуск
+> **Порада щодо Gatekeeper macOS:**
+> Якщо при відкритті `.app` з'являється повідомлення «Програму заблоковано, оскільки розробник невідомий», зніміть карантинний прапорець:
+> ```bash
+> xattr -cr dist/ZoomAutomation_GUI.app
+> ```
 
-| Платформа | GUI | CLI | З вихідного коду |
-|---|---|---|---|
-| **Windows** | `Run.bat` або `ZoomAutomation_GUI.exe` | `RunShell.bat` або `ZoomAutomation_CLI.exe` | `python main.py` / `python cli.py` |
-| **macOS / Linux** | `./run.sh` або `open ZoomAutomation_GUI.app` | `./dist/ZoomAutomation_CLI` | `python3 main.py` / `python3 cli.py` |
+---
 
-## Збірка
-
-Для компіляції автономних виконуваних файлів:
-- **macOS**: виконайте `./build_mac.sh` — формує бандл `ZoomAutomation_GUI.app` та бінарник `ZoomAutomation_CLI` у каталозі `dist/`.
-- **Windows**: запустіть `BuildEXE.bat` — компілює автономний `.exe` за допомогою PyInstaller.
-
-## Структура проєкту
+## 📂 Структура проєкту (macOS)
 
 ```text
 zoom_uploader/
-├── assets/          # Графіка та іконки інтерфейсу
-├── configs/         # client_secret.json, config.json, schedule.json
-├── reports/         # Логи та звіти завантажень (TXT, CSV)
-├── src/             # Вихідний код (core, gui, services)
-├── thumbnails/      # Зображення-обкладинки для курсів
-├── main.py / cli.py # Точки входу GUI та CLI
-├── Run.bat / run.sh # Скрипти запуску (Windows / macOS)
-└── build_mac.sh     # Скрипти збірки (macOS / Windows BuildEXE.bat)
+├── assets/             # Графіка та іконки інтерфейсу
+├── configs/            # client_secret.json, config.json, schedule.json
+├── reports/            # Звіти та логи синхронізації (CSV, TXT)
+├── src/                # Вихідний код додатку
+├── thumbnails/         # Обкладинки для курсів
+├── main.py             # Точка входу GUI
+├── cli.py              # Точка входу CLI
+├── run.sh              # Скрипт запуску для macOS
+└── build_mac.sh        # Скрипт збірки .app бандлу
 ```
