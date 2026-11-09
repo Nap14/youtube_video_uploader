@@ -1,50 +1,82 @@
-# Zoom -> YouTube Uploader 🚀
+# Zoom Video Automation 🚀 (Версія для Windows)
 
-Automatic uploading of lesson recordings from Zoom to YouTube with playlist organization and report generation.
+Автоматизація повного циклу обробки записів Zoom на **Windows**: автопошук записів, завантаження на YouTube, організація плейлистів, автоматична прив'язка до уроків SendPulse LMS та відслідковування декількох записів для одного уроку.
 
-## Features
-- 📂 **Automatic Search**: Finds `.mp4` files in Zoom folders.
-- 📅 **Smart Schedule**: Determines course name based on recording date and time.
-- 📺 **YouTube API**: Automatic upload as "Unlisted".
-- 🎼 **Playlists**: Automatically creates or finds a playlist for a specific group and adds the video.
-- 🖼️ **Thumbnails**: Ability to set custom thumbnails for each course.
-- 🗑️ **Safe Cleanup**: After successful upload, the Zoom folder is moved to the Trash.
+---
 
-## Setup
+## 🌟 Нові можливості версії для Windows
+* 🎬 **Відслідковування декількох відео на один урок**: Якщо запис уроку Zoom переривався або складається з декількох частин, система автоматично зіставляє їх за часовим вікном і додає маркування частин (`Назва Курсу/Дата Ч1`, `Назва Курсу/Дата Ч2`).
+* 🔔 **Робота в системному треї Windows**: Згортання вікна в трей біля годинника з можливістю відкриття або повного виходу.
+* 🎓 **SendPulse LMS Integration**: Автоматичне оновлення кнопкових блоків «Відео» в уроках платформи SendPulse.
 
-### 1. Google API
-Place the `client_secret.json` file (obtained in Google Cloud Console) in the `configs/` project folder.
+---
 
-### 2. Schedule (`configs/schedule.json`)
-Create a `schedule.json` file in the `configs/` folder based on this example:
-```json
-{
-  "Monday": {
-    "15:00": {
-      "name": "Python Group 1",
-      "thumbnail": "python.jpg"
-    },
-    "19:00": "Unity Mon+Wed 19:00"
-  },
-  "Wednesday": {
-    "19:00": "Unity Mon+Wed 19:00"
+## 💻 Системні вимоги
+
+1. **ОС**: Windows 10 або Windows 11 (64-bit).
+2. **Python**: 3.10 - 3.13 (завантажується з [python.org](https://www.python.org/downloads/windows/), обов'язково поставте галочку **«Add python.exe to PATH»** при встановленні).
+
+---
+
+## 🚀 Швидкий запуск
+
+### 1. Налаштування (папка `configs/`)
+* **`configs/client_secret.json`**: Завантажте файл ключів із [Google Cloud Console](https://console.cloud.google.com/) (OAuth 2.0 Client ID, Desktop app).
+* **`configs/config.json`**:
+  ```json
+  {
+      "ZOOM_DIR": "C:\\Users\\Ім'я\\Documents\\Zoom",
+      "LMS_TOKEN": "ВАШ_SENDPULSE_BEARER_ТОКЕН",
+      "SCHOOL_ID": "18828",
+      "THEME": "Dark"
   }
-}
-```
-*Note: Day names must be in English (`Monday`, `Tuesday`, etc.).*
+  ```
+* **`configs/schedule.json`**: Задайте розклад уроків (назви днів тижня англійською: `Monday`, `Tuesday`, тощо):
+  ```json
+  {
+    "Monday": {
+      "18:00": {
+        "name": "Python Basic",
+        "thumbnail": "python.jpg",
+        "lms_course_id": "12345",
+        "duration": 60
+      }
+    }
+  }
+  ```
 
-### 3. Thumbnails
-All images (e.g., `python.jpg`) should be located in the `thumbnails/` folder.
+### 2. Запуск програми
 
-## Running
+* **Графічний інтерфейс (GUI)**:
+  Двічі клікніть на **`Run.bat`**.
+  *Скрипт автоматично перевірить/створить віртуальне середовище `venv`, встановить необхідні бібліотеки з `requirements.txt` і запустить додаток.*
 
-### Windows
-Run the **`Run.bat`** file. On the first run, it will automatically create a virtual environment and install dependencies.
-To create a standalone EXE file, use **`BuildEXE.bat`**.
+* **Консольний режим (CLI / Термінал)**:
+  Двічі клікніть на **`RunShell.bat`**.
 
-### macOS / Linux
-Use the terminal:
-```bash
-chmod +x run.sh
-./run.sh
+---
+
+## 🛠 Збірка в автономний `.exe` файл
+
+Щоб скомпілювати автономний виконуваний файл, який працює без встановленого Python:
+1. Запустіть файл **`BuildEXE.bat`**.
+2. Після завершення у папці **`dist\`** буде створено **`dist\ZoomUploader.exe`**.
+3. Для коректної роботи файлу `.exe` поряд з ним має знаходитись папка `configs/` з вашими налаштуваннями.
+
+---
+
+## 📂 Структура проєкту (Windows)
+
+```text
+zoom_uploader/
+├── assets/             # Графіка та іконки інтерфейсу
+├── configs/            # client_secret.json, config.json, schedule.json
+├── reports/            # Логи та звіти завантажень (TXT, CSV)
+├── src/                # Вихідний код додатку (GUI, Services, YouTube, LMS)
+├── thumbnails/         # Обкладинки курсів
+├── main.py             # Точка входу графічного інтерфейсу
+├── cli.py              # Точка входу консольного інтерфейсу
+├── Run.bat             # Скрипт запуску GUI
+├── RunShell.bat        # Скрипт запуску CLI
+└── BuildEXE.bat        # Скрипт збірки автономного EXE через PyInstaller
 ```

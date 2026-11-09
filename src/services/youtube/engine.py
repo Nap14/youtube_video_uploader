@@ -25,10 +25,39 @@ class YoutubeProcessor(BaseProcessor):
             return []
             
         folders = [f for f in os.listdir(zoom_dir) if os.path.isdir(os.path.join(zoom_dir, f))]
+        folders.sort()
         
         if progress_cb:
             self.ctx.logger.info(f"Found {len(folders)} video folders to process.")
             progress_cb(f"Processing...", (0, len(folders)))
+
+        # Pre-scan to group multiple recordings in the same lesson slot
+        slot_map = {}
+        for folder in folders:
+            folder_path = os.path.join(zoom_dir, folder)
+            mp4 = find_video(folder_path)
+            if not mp4:
+                continue
+            v_date = get_date_from_file_name(folder)
+            if not v_date:
+                continue
+            meta = get_course_name_by_date(v_date, self.ctx.schedule)
+            if not meta:
+                continue
+            c_name = meta if isinstance(meta, str) else meta.get("name", "Unknown")
+            slot_time = meta.get("start_time", "") if isinstance(meta, dict) else ""
+            slot_key = (v_date.strftime('%Y-%m-%d'), c_name, slot_time)
+            if slot_key not in slot_map:
+                slot_map[slot_key] = []
+            slot_map[slot_key].append(folder)
+
+        folder_part_suffix = {}
+        for slot_key, slot_folder_list in slot_map.items():
+            if len(slot_folder_list) > 1:
+                for idx, f_name in enumerate(slot_folder_list):
+                    folder_part_suffix[f_name] = f" Ч{idx + 1}"
+            else:
+                folder_part_suffix[slot_folder_list[0]] = ""
 
         results: List[UploadResult] = []
         
@@ -36,7 +65,8 @@ class YoutubeProcessor(BaseProcessor):
             if progress_cb:
                 progress_cb(f"Processsing: {folder}", (i + 1, len(folders)))
                 
-            res = self._process_folder(folder, os.path.join(zoom_dir, folder), progress_cb)
+            part_suffix = folder_part_suffix.get(folder, "")
+            res = self._process_folder(folder, os.path.join(zoom_dir, folder), progress_cb, part_suffix=part_suffix)
             if res:
                 results.append(res)
                 
@@ -46,7 +76,7 @@ class YoutubeProcessor(BaseProcessor):
         msg = f"Zoom videos directory not found: '{zoom_dir}'\nCheck 'ZOOM_DIR' in settings."
         self._report_error("Directory Error", msg)
 
-    def _process_folder(self, name: str, path: str, progress_cb: Optional[Callable] = None) -> Optional[UploadResult]:
+    def _process_folder(self, name: str, path: str, progress_cb: Optional[Callable] = None, part_suffix: str = "") -> Optional[UploadResult]:
         mp4 = find_video(path)
         if not mp4:
             return None
@@ -70,33 +100,34 @@ class YoutubeProcessor(BaseProcessor):
             
         c_name = meta if isinstance(meta, str) else meta.get("name", "Unknown")
         
-        self.ctx.logger.info(f"Matched Course: {c_name}")
+        self.ctx.logger.info(f"Matched Course: {c_name}{part_suffix}")
             
-        return self._check_marker_or_upload(path, mp4[0], v_date, meta, d_str, c_name, progress_cb)
+        return self._check_marker_or_upload(path, mp4[0], v_date, meta, d_str, c_name, progress_cb, part_suffix=part_suffix)
 
-    def _check_marker_or_upload(self, path, mp4_file, v_date, meta, d_str, c_name, progress_cb: Optional[Callable] = None):
+    def _check_marker_or_upload(self, path, mp4_file, v_date, meta, d_str, c_name, progress_cb: Optional[Callable] = None, part_suffix: str = ""):
+        display_name = f"{c_name}{part_suffix}" if part_suffix else c_name
         marker = os.path.join(path, ".uploaded_to_youtube")
         if os.path.exists(marker):
-            with open(marker, 'r') as f:
+            with open(marker, 'r', encoding='utf-8') as f:
                 vid = f.read().strip()
-            self.ctx.logger.info(f"Already uploaded earlier: {c_name} (ID: {vid})")
-            return UploadResult(d_str, c_name, f"https://youtu.be/{vid}", UploadStatus.ALREADY_UPLOADED)
+            self.ctx.logger.info(f"Already uploaded earlier: {display_name} (ID: {vid})")
+            return UploadResult(d_str, display_name, f"https://youtu.be/{vid}", UploadStatus.ALREADY_UPLOADED)
             
         try:
-            return self._upload(path, mp4_file, v_date, meta, d_str, c_name, progress_cb)
+            return self._upload(path, mp4_file, v_date, meta, d_str, c_name, progress_cb, part_suffix=part_suffix)
         except Exception as e:
             self.ctx.logger.error(f"Upload error {os.path.basename(path)}: {e}")
-            return UploadResult(d_str, c_name, "", UploadStatus.FAIL, str(e))
+            return UploadResult(d_str, display_name, "", UploadStatus.FAIL, str(e))
 
-    def _upload(self, path: str, mp4_rel: str, v_date: datetime, meta: Any, d_str: str, c_name: str, progress_cb: Optional[Callable] = None) -> UploadResult:
+    def _upload(self, path: str, mp4_rel: str, v_date: datetime, meta: Any, d_str: str, c_name: str, progress_cb: Optional[Callable] = None, part_suffix: str = "") -> UploadResult:
         full_path = os.path.join(path, mp4_rel)
-        title = f"{c_name}/{v_date.strftime('%d.%m.%Y')}"
+        title = f"{c_name}/{v_date.strftime('%d.%m.%Y')}{part_suffix}"
         
         self.ctx.logger.info(f"Uploading {title} to YouTube...")
         vid, url = self.vs.upload(full_path, title, f"Lesson: {c_name}")
         self._apply_thumbnail(vid, meta)
         
-        with open(os.path.join(path, ".uploaded_to_youtube"), 'w') as f:
+        with open(os.path.join(path, ".uploaded_to_youtube"), 'w', encoding='utf-8') as f:
             f.write(vid)
             
         self.pc.add_video(vid, c_name)
@@ -104,7 +135,8 @@ class YoutubeProcessor(BaseProcessor):
         
         self.ctx.logger.info(f"Upload Complete: {url}")
             
-        return UploadResult(d_str, c_name, url, UploadStatus.SUCCESS)
+        display_name = f"{c_name}{part_suffix}" if part_suffix else c_name
+        return UploadResult(d_str, display_name, url, UploadStatus.SUCCESS)
 
     def _apply_thumbnail(self, vid: str, meta: Any):
         if isinstance(meta, str):

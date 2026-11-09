@@ -38,5 +38,5 @@ class Oauth2Service:
         self._save_creds(creds, token_path)
     
     def _save_creds(self, creds, token_path):
-        with open(token_path, 'w') as f:
+        with open(token_path, 'w', encoding='utf-8') as f:
             f.write(creds.to_json())
