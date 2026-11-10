@@ -1,0 +1,55 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ windows, main ]
+    paths-ignore:
+      - 'README.md'
+      - '.gitignore'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Build Windows Executable (.exe)
+        run: |
+          pyinstaller --onefile --noconsole --name "ZoomUploader" --clean `
+            --collect-all customtkinter `
+            --collect-all googleapiclient `
+            --collect-all google_auth_oauthlib `
+            --collect-all pydantic `
+            --hidden-import darkdetect `
+            --add-data "assets;assets" `
+            main.py
+
+      - name: Prepare Release Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "package/configs", "package/thumbnails", "package/reports"
+          Copy-Item "dist/ZoomUploader.exe" -Destination "package/"
+          if (Test-Path "assets") { Copy-Item -Recurse "assets" -Destination "package/" }
+          if (Test-Path "thumbnails") { Copy-Item -Recurse "thumbnails/*" -Destination "package/thumbnails/" }
+          Compress-Archive -Path "package/*" -DestinationPath "ZoomUploader-Windows.zip" -Force
+
+      - name: Upload Windows Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZoomUploader-Windows
+          path: ZoomUploader-Windows.zip
+          retention-days: 30
