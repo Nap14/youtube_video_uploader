@@ -7,6 +7,7 @@ reports/
 # === Build artifacts & binaries ===
 build/
 dist/
+*.exe
 *.spec
 ZoomAutomation_CLI
 *.app
@@ -21,6 +22,7 @@ __pycache__/
 *.log
 *.txt
 !requirements.txt
+!INSTRUCTIONS.txt
 
 # === IDE & OS ===
 .vscode/
