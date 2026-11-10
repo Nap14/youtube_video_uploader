@@ -1,16 +1,20 @@
 name: Build macOS App
 
 on:
-  push:
-    branches: [ macos, main ]
-    paths-ignore:
-      - 'README.md'
-      - '.gitignore'
   workflow_dispatch:
 
 jobs:
   build-macos:
-    runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - runner: macos-latest
+            arch_name: AppleSilicon
+            display_name: Apple Silicon (M1/M2/M3/M4)
+          - runner: macos-13
+            arch_name: Intel
+            display_name: Intel Core (x86_64)
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout repository
@@ -27,7 +31,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt pyinstaller
 
-      - name: Build macOS Application (.app)
+      - name: Build macOS Application (${{ matrix.display_name }})
         run: |
           pyinstaller --windowed --name "ZoomAutomation_GUI" --clean \
             --collect-all googleapiclient \
@@ -44,11 +48,11 @@ jobs:
           cp -r dist/ZoomAutomation_GUI.app package/
           cp -r assets package/ 2>/dev/null || true
           cp -r thumbnails/* package/thumbnails/ 2>/dev/null || true
-          ditto -c -k --keepParent package ZoomAutomation-macOS.zip
+          ditto -c -k --keepParent package "ZoomAutomation-macOS-${{ matrix.arch_name }}.zip"
 
-      - name: Upload macOS Build Artifact
+      - name: Upload macOS Build Artifact (${{ matrix.arch_name }})
         uses: actions/upload-artifact@v4
         with:
-          name: ZoomAutomation-macOS
-          path: ZoomAutomation-macOS.zip
+          name: ZoomAutomation-macOS-${{ matrix.arch_name }}
+          path: ZoomAutomation-macOS-${{ matrix.arch_name }}.zip
           retention-days: 30
