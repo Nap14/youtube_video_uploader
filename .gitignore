@@ -22,6 +22,7 @@ __pycache__/
 *.log
 *.txt
 !requirements.txt
+!INSTRUCTIONS.txt
 
 # === IDE & OS ===
 .vscode/
