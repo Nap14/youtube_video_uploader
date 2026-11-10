@@ -1,11 +1,6 @@
 name: Build Windows EXE
 
 on:
-  push:
-    branches: [ windows, main ]
-    paths-ignore:
-      - 'README.md'
-      - '.gitignore'
   workflow_dispatch:
 
 jobs:
