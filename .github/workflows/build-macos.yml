@@ -45,7 +45,7 @@ jobs:
       - name: Prepare Release Package
         run: |
           mkdir -p package/configs package/thumbnails package/reports
-          cp -r dist/ZoomAutomation_GUI.app package/
+          cp -a dist/ZoomAutomation_GUI.app package/
           cp -r assets package/ 2>/dev/null || true
           cp -r thumbnails/* package/thumbnails/ 2>/dev/null || true
           ditto -c -k --keepParent package "ZoomAutomation-macOS-${{ matrix.arch_name }}.zip"
